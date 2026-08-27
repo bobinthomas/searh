@@ -11,7 +11,7 @@ export default async function AdminLayout({
   const auth = cookieStore.get("admin_auth");
 
   if (!auth || auth.value !== "true") {
-    redirect("/admin/login");
+    redirect("/login");
   }
 
   return (
