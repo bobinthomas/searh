@@ -240,7 +240,7 @@ export function Editor({ type, initialData, isNew }: EditorProps) {
             onClick={() => handleSave()}
             className="border-[var(--color-void-line)] text-[var(--color-paper)]"
           >
-            {saving ? "Saving..." : "Save draft"}
+            {saving ? "Saving..." : data.status === "published" ? "Save changes" : "Save draft"}
           </Button>
           <Button
             size="sm"
@@ -248,7 +248,7 @@ export function Editor({ type, initialData, isNew }: EditorProps) {
             onClick={handlePublish}
             className="bg-[var(--color-lime)] text-[var(--color-void)] hover:bg-[var(--color-lime)]/90"
           >
-            Publish
+            {data.status === "published" ? "Published" : "Publish"}
           </Button>
         </div>
       </div>
@@ -315,6 +315,13 @@ export function Editor({ type, initialData, isNew }: EditorProps) {
               value={data.tags}
               onChange={(tags) => setData((prev) => ({ ...prev, tags }))}
             />
+            {type === "project" && (
+              <p className="text-xs text-[var(--color-muted-ink)]">
+                Add <code>sketchbook</code> or <code>selected</code> to feature this on the
+                homepage — published projects without one of these tags only appear on
+                the /work page.
+              </p>
+            )}
           </div>
 
           {/* Cover image */}
