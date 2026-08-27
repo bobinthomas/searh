@@ -1,0 +1,90 @@
+[
+  {
+    "id": "2026-08-hands-study",
+    "file": "hands-study",
+    "alt": "Pencil study of a hand gripping a pencil, drawn from three angles on a sketchbook page",
+    "title": "Hands, three angles",
+    "date": "2026-08-14",
+    "medium": "Graphite on cartridge, A4",
+    "time": "40 min",
+    "section": "sketchbook",
+    "note": "Second attempt. The thumb still reads flat, the knuckle line is where it went wrong."
+  },
+  {
+    "id": "2026-08-street-perspective",
+    "file": "street-perspective",
+    "alt": "Ink pen sketch of a crowded street filled with autorickshaws, shopfronts and overhead wires receding to a vanishing point",
+    "title": "Autos, evening rush",
+    "date": "2026-08-09",
+    "medium": "Fineliner in sketchbook, A5",
+    "time": "55 min",
+    "section": "sketchbook",
+    "note": "Drawn standing. The left row of autos drifts off the horizon line."
+  },
+  {
+    "id": "2026-07-market-colour",
+    "file": "market-colour-study",
+    "alt": "Gouache colour study of a vegetable market stall with flat blocks of red, green and yellow produce under a pale awning",
+    "title": "Market stall, flat colour",
+    "date": "2026-07-28",
+    "medium": "Gouache on 200gsm, 20x20cm",
+    "time": "1 hr 20 min",
+    "section": "sketchbook",
+    "note": "Trying to hold the whole stall in six values before touching detail."
+  },
+  {
+    "id": "2026-07-tumbler-still-life",
+    "file": "still-life-tumbler",
+    "alt": "Graphite still life of a steel tumbler, two onions and a folded cloth lit strongly from the left",
+    "title": "Tumbler and onions",
+    "date": "2026-07-19",
+    "medium": "Graphite, 2H to 6B, A3",
+    "time": "2 hr",
+    "section": "sketchbook",
+    "note": "The cast shadow saved it. The onion skins are overworked."
+  },
+  {
+    "id": "2026-07-bus-seat",
+    "file": "bus-seat-illustration",
+    "alt": "Pencil and ink illustration of a girl seated on a bus with a satchel resting on her lap",
+    "title": "Bus seat, 7:40am",
+    "date": "2026-07-05",
+    "medium": "Pencil and ink on toned paper, A4",
+    "time": "35 min",
+    "section": "sketchbook",
+    "note": "Drawn from memory the same evening. The shoulder is too narrow."
+  },
+  {
+    "id": "2026-08-hands-selected",
+    "file": "hands-study",
+    "alt": "Pencil study of a hand gripping a pencil, drawn from three angles on a sketchbook page",
+    "title": "Hands, three angles",
+    "date": "2026-08-14",
+    "medium": "Graphite on cartridge, A4",
+    "time": "40 min",
+    "section": "selected",
+    "note": "Solving: how the tendon lines change as the wrist rotates. Would redo: the middle hand is drawn from the pose I understand, not the one in front of me."
+  },
+  {
+    "id": "2026-07-tumbler-selected",
+    "file": "still-life-tumbler",
+    "alt": "Graphite still life of a steel tumbler, two onions and a folded cloth lit strongly from the left",
+    "title": "Tumbler and onions",
+    "date": "2026-07-19",
+    "medium": "Graphite, 2H to 6B, A3",
+    "time": "2 hr",
+    "section": "selected",
+    "note": "Solving: reflected light on steel without losing the form turn. Would redo: less graphite on the cloth so the metal stays the brightest thing on the page."
+  },
+  {
+    "id": "2026-07-market-selected",
+    "file": "market-colour-study",
+    "alt": "Gouache colour study of a vegetable market stall with flat blocks of red, green and yellow produce under a pale awning",
+    "title": "Market stall, flat colour",
+    "date": "2026-07-28",
+    "medium": "Gouache on 200gsm, 20x20cm",
+    "time": "1 hr 20 min",
+    "section": "selected",
+    "note": "Solving: reading a chaotic scene as six flat shapes. Would redo: the orange cloth pulls too hard, it should sit under the produce, not in front of it."
+  }
+]

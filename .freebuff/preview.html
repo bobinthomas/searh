@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<title>serahbobin — drawing portfolio</title>
+<meta name="description" content="Sketchbook pages, still life, colour studies and illustration by serahbobin, applying to NID, NIFT and UCEED."/>
+<style>
+  :root {
+    --ink: #1c1c1c;
+    --paper: #fbfaf3;
+    --lime: #d0fa66;
+    --muted-ink: #6b6b64;
+    --void: #0f0f0f;
+    --void-2: #181818;
+    --void-line: #2a2a2a;
+    --void-muted: #8f8f88;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; border-color: var(--void-line); }
+  body { background: var(--paper); color: var(--ink); font-family: 'Archivo', system-ui, sans-serif; }
+  a { color: inherit; text-decoration: none; }
+
+  /* Site header */
+  .site-header { position: sticky; top: 0; z-index: 50; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(28,28,28,0.1); background: rgba(251,250,243,0.8); padding: 12px 24px; backdrop-filter: blur(12px); }
+  .site-header .brand { font-family: 'Space Grotesk', sans-serif; font-size: 14px; font-weight: 500; letter-spacing: -0.01em; color: var(--ink); }
+  .site-header .brand:hover { color: var(--lime); }
+  .site-header nav { display: flex; gap: 24px; font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted-ink); }
+  .site-header nav a:hover { color: var(--ink); }
+
+  /* Portfolio shell (dark) */
+  .portfolio { min-height: 100vh; background: var(--void); color: var(--paper); }
+
+  /* Desktop fixed chrome */
+  .desktop-chrome { display: none; }
+  @media (min-width: 768px) {
+    .desktop-chrome { display: block; position: fixed; inset: 0; z-index: 40; pointer-events: none; }
+    .chrome-chip { background: rgba(15,15,15,0.78); backdrop-filter: blur(4px); }
+    .desktop-chrome .brand-link { position: absolute; left: 24px; top: 20px; pointer-events: auto; }
+    .desktop-chrome .email-link { position: absolute; right: 24px; top: 20px; pointer-events: auto; border: 1px solid rgba(251,250,243,0.4); background: var(--lime); padding: 6px 12px; font-family: 'Space Grotesk', monospace; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.2em; color: var(--ink); }
+    .desktop-chrome nav { position: absolute; left: 24px; top: 50%; transform: translateY(-50%); pointer-events: auto; }
+    .desktop-chrome nav ul { list-style: none; display: flex; flex-direction: column; gap: 4px; }
+    .desktop-chrome nav a { display: inline-block; padding: 2px 8px; font-family: 'Space Grotesk', monospace; font-size: 12px; font-weight: 500; color: var(--paper); }
+    .desktop-chrome nav a:hover { color: var(--lime); }
+    .desktop-chrome .footer-chip { position: absolute; bottom: 20px; left: 24px; pointer-events: auto; }
+  }
+
+  /* Mobile header */
+  .mobile-header { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--void-line); background: var(--void); padding: 12px 16px; }
+  @media (min-width: 768px) { .mobile-header { display: none; } }
+  .mobile-header .brand { font-family: 'Space Grotesk', sans-serif; font-size: 15px; font-weight: 500; }
+  .mobile-header .email-link { background: var(--lime); padding: 4px 12px; font-family: 'Space Grotesk', monospace; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.2em; color: var(--ink); }
+
+  /* Hero */
+  .hero { display: grid; grid-template-columns: 1fr 1fr; }
+  @media (max-width: 767px) { .hero { grid-template-columns: 1fr; } }
+  .hero-sketchbook { display: none; }
+  @media (min-width: 768px) {
+    .hero-sketchbook { display: block; position: sticky; top: 0; height: 100vh; overflow: hidden; background: var(--void-2); }
+    .scroll-track { animation: auto-scroll-up 45s linear infinite; will-change: transform; }
+    .hero-sketchbook:hover .scroll-track { animation-play-state: paused; }
+  }
+  @keyframes auto-scroll-up { from { transform: translateY(0); } to { transform: translateY(-50%); } }
+  .hero-text { position: sticky; top: 0; display: flex; flex-direction: column; justify-content: space-between; padding: 64px 48px; min-height: 70vh; }
+  @media (min-width: 768px) { .hero-text { height: 100vh; padding: 80px 48px; } }
+  .hero-text h1 { max-width: 16ch; font-family: 'Space Grotesk', sans-serif; font-size: 3.4rem; font-weight: 500; line-height: 1.05; letter-spacing: -0.02em; }
+  @media (max-width: 639px) { .hero-text h1 { font-size: 2.25rem; } }
+  .hero-meta { margin-top: 40px; display: flex; flex-wrap: wrap; gap: 8px 24px; font-family: 'Space Grotesk', monospace; font-size: 11px; text-transform: uppercase; letter-spacing: 0.18em; color: var(--void-muted); }
+  .hero-meta .highlight { color: var(--lime); }
+
+  /* Sections */
+  .section { border-top: 1px solid var(--void-line); }
+  .section-header { display: flex; align-items: baseline; justify-content: space-between; padding: 24px 16px; }
+  @media (min-width: 768px) { .section-header { padding: 24px 48px; } }
+  .section-label { font-family: 'Space Grotesk', monospace; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.24em; color: var(--void-muted); }
+
+  /* Selected work */
+  .selected-item { display: grid; gap: 32px; padding: 40px 16px; border-top: 1px solid var(--void-line); }
+  @media (min-width: 768px) { .selected-item { grid-template-columns: minmax(0,1.4fr) minmax(0,1fr); padding: 64px 48px; } }
+  .selected-img { width: 100%; background: var(--void-2); display: flex; align-items: center; justify-content: center; }
+  .selected-img img { max-height: 620px; width: auto; }
+  .selected-meta { display: flex; flex-direction: column; }
+  .selected-meta .number { font-family: 'Space Grotesk', monospace; font-size: 11px; text-transform: uppercase; letter-spacing: 0.24em; color: var(--lime); }
+  .selected-meta h3 { margin-top: 12px; font-family: 'Space Grotesk', sans-serif; font-size: 1.75rem; font-weight: 500; }
+  @media (min-width: 768px) { .selected-meta h3 { font-size: 2rem; } }
+  .selected-meta p { margin-top: 16px; line-height: 1.7; color: rgba(251,250,243,0.8); }
+  .selected-meta dl { margin-top: 24px; border-top: 1px solid var(--void-line); font-family: 'Space Grotesk', monospace; font-size: 11px; text-transform: uppercase; letter-spacing: 0.14em; }
+  .selected-meta dt { width: 70px; flex-shrink: 0; color: var(--void-muted); }
+  .selected-meta dd { min-width: 0; flex: 1; }
+  .selected-meta dl > div { display: flex; gap: 16px; border-bottom: 1px solid var(--void-line); padding: 8px 0; }
+
+  /* Practice log */
+  .log-section { padding: 40px 16px; }
+  @media (min-width: 768px) { .log-section { padding: 64px 48px; } }
+  .log-list { margin-top: 24px; font-family: 'Space Grotesk', monospace; font-size: 12px; line-height: 1.5; list-style: none; }
+  .log-list li { display: flex; align-items: baseline; gap: 12px; border-bottom: 1px solid var(--void-line); padding: 8px 0; }
+  .log-kind { width: 86px; flex-shrink: 0; text-transform: uppercase; letter-spacing: 0.14em; color: var(--lime); }
+  .log-text { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: rgba(251,250,243,0.85); }
+  .log-date { flex-shrink: 0; font-variant-numeric: tabular-nums; color: var(--void-muted); }
+
+  /* About + Contact */
+  .about-grid { display: grid; gap: 40px; padding: 48px 16px; border-top: 1px solid var(--void-line); }
+  @media (min-width: 768px) { .about-grid { grid-template-columns: 1fr 1fr; padding: 80px 48px; } }
+  .about-grid p { margin-top: 20px; max-width: 65ch; font-size: 1.125rem; line-height: 1.7; color: rgba(251,250,243,0.85); }
+  .contact-list { margin-top: 20px; font-family: 'Space Grotesk', monospace; font-size: 12px; text-transform: uppercase; letter-spacing: 0.14em; list-style: none; }
+  .contact-list li { display: flex; gap: 16px; border-bottom: 1px solid var(--void-line); padding: 10px 0; }
+  .contact-list .label { width: 86px; flex-shrink: 0; color: var(--void-muted); }
+  .contact-list a { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; color: var(--lime); text-decoration: underline; text-underline-offset: 4px; }
+
+  /* Footer */
+  .site-footer { display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--void-line); padding: 20px 16px; font-family: 'Space Grotesk', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.2em; color: var(--void-muted); }
+  @media (min-width: 768px) { .site-footer { padding: 20px 48px; } }
+  .site-footer .accent { color: var(--lime); }
+
+  /* Section label small */
+  .section-header .count { font-family: 'Space Grotesk', monospace; font-size: 11px; text-transform: uppercase; letter-spacing: 0.18em; color: var(--void-muted); }
+
+  /* Empty state placeholder */
+  .empty-tile { aspect-ratio: 4/5; background: var(--void-2); display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', monospace; font-size: 11px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--void-muted); }
+</style>
+</head>
+<body>
+
+<!-- Site header (above the dark portfolio shell) -->
+<header class="site-header">
+  <a href="/" class="brand">serahbobin</a>
+  <nav>
+    <a href="/work">Work</a>
+    <a href="/blog">Blog</a>
+    <a href="/about">About</a>
+  </nav>
+</header>
+
+<div class="portfolio">
+
+  <!-- Desktop fixed chrome -->
+  <div class="desktop-chrome">
+    <a href="#top" class="brand-link chrome-chip" style="padding:4px 8px;font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:500;color:var(--paper);">serahbobin</a>
+    <a href="mailto:hello@serahbobin.com" class="email-link">Email</a>
+    <nav>
+      <ul>
+        <li><a href="#work" class="chrome-chip">Work</a></li>
+        <li><a href="#selected" class="chrome-chip">Selected</a></li>
+        <li><a href="#log" class="chrome-chip">Log</a></li>
+        <li><a href="#about" class="chrome-chip">About</a></li>
+        <li><a href="#contact" class="chrome-chip">Contact</a></li>
+      </ul>
+    </nav>
+    <span class="footer-chip chrome-chip" style="padding:4px 8px;font-family:'Space Grotesk',monospace;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.14em;color:var(--paper);">&copy;2026 serahbobin</span>
+  </div>
+
+  <!-- Mobile header -->
+  <header class="mobile-header" style="position:sticky;top:0;z-index:40;">
+    <span class="brand">serahbobin</span>
+    <a href="mailto:hello@serahbobin.com" class="email-link">Email</a>
+  </header>
+
+  <main id="top">
+    <!-- Hero section -->
+    <section id="work" class="hero">
+      <div class="hero-sketchbook">
+        <div class="scroll-track">
+          <!-- Placeholder tiles (no Supabase data yet) -->
+          <div class="empty-tile">Sketchbook pages will appear here</div>
+          <div class="empty-tile" style="aspect-ratio:3/4;">when data is seeded</div>
+        </div>
+      </div>
+      <div style="grid-column:1/-1;">
+        <div class="hero-text">
+          <div></div>
+          <h1>Drawing from observation, every day, in Kerala.</h1>
+          <div class="hero-meta">
+            <span>0 pages</span>
+            <span>Graphite / Ink / Gouache</span>
+            <span class="highlight">NID &middot; NIFT &middot; UCEED 2026</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Selected work -->
+    <section id="selected" class="section">
+      <div class="section-header">
+        <span class="section-label">Selected work</span>
+        <span class="count">0 pieces</span>
+      </div>
+      <div style="padding:40px 16px;text-align:center;color:var(--void-muted);font-family:'Space Grotesk',monospace;font-size:11px;text-transform:uppercase;letter-spacing:0.14em;">
+        No projects seeded yet. Add rows to the projects table in Supabase.
+      </div>
+    </section>
+
+    <!-- Practice log -->
+    <section id="log" class="section">
+      <div class="section-header" style="padding:40px 16px;">
+        <span class="section-label">Practice log</span>
+        <span style="font-family:'Space Grotesk',monospace;font-size:11px;text-transform:uppercase;letter-spacing:0.18em;color:var(--void-muted);">failures kept on purpose</span>
+      </div>
+      <div class="log-section" style="border-top:none;">
+        <ul class="log-list">
+          <li><span class="log-kind">STUDY</span><span class="log-text">hands, three angles, 40 min</span><span class="log-date">14/08/2026</span></li>
+          <li><span class="log-kind">FAILED</span><span class="log-text">market scene, perspective collapsed</span><span class="log-date">12/08/2026</span></li>
+          <li><span class="log-kind">TIMED</span><span class="log-text">20 x 2 min gestures, bus stand</span><span class="log-date">11/08/2026</span></li>
+          <li><span class="log-kind">FROM LIFE</span><span class="log-text">autos from the footpath, 55 min</span><span class="log-date">09/08/2026</span></li>
+          <li><span class="log-kind">REDO</span><span class="log-text">tumbler still life, attempt 03</span><span class="log-date">07/08/2026</span></li>
+          <li><span class="log-kind">STUDY</span><span class="log-text">six-value gouache drill, 3 pages</span><span class="log-date">04/08/2026</span></li>
+          <li><span class="log-kind">FAILED</span><span class="log-text">hands in foreshortening, all four</span><span class="log-date">01/08/2026</span></li>
+          <li><span class="log-kind">FROM LIFE</span><span class="log-text">market stall, flat colour, 1 hr 20</span><span class="log-date">28/07/2026</span></li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- About + Contact -->
+    <section id="about" class="section">
+      <div class="about-grid">
+        <div>
+          <span class="section-label" style="font-family:'Space Grotesk',monospace;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.24em;color:var(--void-muted);">About</span>
+          <p>I am a student in Kerala, drawing daily since 2023. Most of what is here is unfinished &mdash; I keep the failures up because they are the part I learn from and the part I can actually talk about. I want to study design so I can keep drawing with people who push harder than I do.</p>
+        </div>
+        <div id="contact">
+          <span class="section-label" style="font-family:'Space Grotesk',monospace;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.24em;color:var(--void-muted);">Contact</span>
+          <ul class="contact-list">
+            <li><span class="label">Email</span><a href="mailto:hello@serahbobin.com">hello@serahbobin.com</a></li>
+            <li><span class="label">Instagram</span><a href="https://instagram.com/serahbobin" target="_blank" rel="me noreferrer">@serahbobin</a></li>
+            <li><span class="label">Location</span><span style="min-width:0;flex:1;">Kerala, India</span></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <footer class="site-footer">
+      <span>&copy;2026 serahbobin</span>
+      <span class="accent">Drawing daily</span>
+    </footer>
+  </main>
+</div>
+</body>
+</html>
