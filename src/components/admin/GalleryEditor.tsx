@@ -248,7 +248,7 @@ export function GalleryEditor({
             size="sm"
             disabled={uploading}
             onClick={() => fileInputRef.current?.click()}
-            className="border-[var(--color-void-line)] text-[var(--color-paper)]"
+            className="border-[var(--color-void-line)] bg-[var(--color-void-2)] text-[var(--color-paper)] hover:bg-[var(--color-void)] hover:text-[var(--color-paper)]"
           >
             <Upload className="h-4 w-4" />
             {uploading ? "Uploading..." : "Add images"}

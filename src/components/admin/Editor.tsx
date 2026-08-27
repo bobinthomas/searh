@@ -238,7 +238,7 @@ export function Editor({ type, initialData, isNew }: EditorProps) {
             size="sm"
             disabled={saving}
             onClick={() => handleSave()}
-            className="border-[var(--color-void-line)] text-[var(--color-paper)]"
+            className="border-[var(--color-void-line)] bg-[var(--color-void-2)] text-[var(--color-paper)] hover:bg-[var(--color-void)] hover:text-[var(--color-paper)]"
           >
             {saving ? "Saving..." : data.status === "published" ? "Save changes" : "Save draft"}
           </Button>
