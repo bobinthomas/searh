@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { requireAdmin } from "@/lib/admin-auth";
 
 // PATCH /api/projects/:id/images/:imageId
 export async function PATCH(
@@ -7,13 +8,10 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string; imageId: string }> },
 ) {
   const { imageId } = await params;
-  const supabase = await createClient();
+  const authError = await requireAdmin();
+  if (authError) return authError;
 
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
+  const supabase = createAdminClient();
   const body = await request.json();
   const updates: Record<string, unknown> = {};
 
@@ -40,13 +38,10 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string; imageId: string }> },
 ) {
   const { imageId } = await params;
-  const supabase = await createClient();
+  const authError = await requireAdmin();
+  if (authError) return authError;
 
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
+  const supabase = createAdminClient();
   const { error } = await supabase
     .from("project_images")
     .delete()

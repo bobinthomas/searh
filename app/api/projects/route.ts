@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { requireAdmin } from "@/lib/admin-auth";
 
 // GET /api/projects — list all projects
 export async function GET() {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("projects")
     .select("id, title, slug, status, summary, cover_path, tags, client, year, body_md, sort_order, created_at, updated_at, published_at")
@@ -17,13 +18,10 @@ export async function GET() {
 
 // POST /api/projects — create a new project
 export async function POST(request: Request) {
-  const supabase = await createClient();
+  const authError = await requireAdmin();
+  if (authError) return authError;
 
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
+  const supabase = createAdminClient();
   const body = await request.json();
   const { title, slug, summary, client, year, body_md, tags, cover_path, status, sort_order } = body;
 

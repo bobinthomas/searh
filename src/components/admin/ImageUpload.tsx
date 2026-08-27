@@ -105,18 +105,20 @@ export function ImageUpload({
       const slug = file.name.replace(/\.[^.]+$/, "").toLowerCase().replace(/[^a-z0-9]+/g, "-");
       const storagePath = `${mediaFolder}/${slug}/${uuid}.webp`;
 
-      // Upload to Supabase Storage via client
-      const { createClient } = await import("@/lib/supabase/client");
-      const supabase = createClient();
+      // Upload to Supabase Storage via server API (uses admin client to bypass RLS)
+      const formData = new FormData();
+      formData.append("file", blob, "image.webp");
+      formData.append("path", storagePath);
 
-      const { error } = await supabase.storage
-        .from("media")
-        .upload(storagePath, blob, {
-          contentType: "image/webp",
-          upsert: false,
-        });
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
 
-      if (error) throw error;
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Upload failed" }));
+        throw new Error(err.error || "Upload failed");
+      }
 
       // Show preview
       setPreview(URL.createObjectURL(blob));

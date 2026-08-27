@@ -80,9 +80,6 @@ export function GalleryEditor({
 
     setUploading(true);
     try {
-      const { createClient } = await import("@/lib/supabase/client");
-      const supabase = createClient();
-
       const newImages: GalleryImage[] = [];
 
       for (const file of files) {
@@ -91,11 +88,20 @@ export function GalleryEditor({
         const slug = file.name.replace(/\.[^.]+$/, "").toLowerCase().replace(/[^a-z0-9]+/g, "-");
         const storagePath = `projects/${slug}/${uuid}.webp`;
 
-        const { error } = await supabase.storage
-          .from("media")
-          .upload(storagePath, blob, { contentType: "image/webp", upsert: false });
+        // Upload via server API (uses admin client to bypass RLS)
+        const formData = new FormData();
+        formData.append("file", blob, "image.webp");
+        formData.append("path", storagePath);
 
-        if (error) throw error;
+        const uploadRes = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!uploadRes.ok) {
+          const err = await uploadRes.json().catch(() => ({ error: "Upload failed" }));
+          throw new Error(err.error || "Upload failed");
+        }
 
         newImages.push({
           storage_path: storagePath,
@@ -154,10 +160,10 @@ export function GalleryEditor({
 
       if (!res.ok) throw new Error("Delete failed");
 
-      // Also delete from storage
-      const { createClient } = await import("@/lib/supabase/client");
-      const supabase = createClient();
-      await supabase.storage.from("media").remove([img.storage_path]);
+      // Also delete from storage via server API
+      await fetch(`/api/upload?path=${encodeURIComponent(img.storage_path)}`, {
+        method: "DELETE",
+      });
 
       onUpdate(images.filter((_, i) => i !== idx));
       toast.success("Image deleted");

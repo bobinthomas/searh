@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { requireAdmin } from "@/lib/admin-auth";
 
 // GET /api/posts — list all posts (admin sees all, not just published)
 export async function GET() {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("posts")
     .select("id, title, slug, status, excerpt, cover_path, tags, body_md, created_at, updated_at, published_at")
@@ -17,13 +18,10 @@ export async function GET() {
 
 // POST /api/posts — create a new post
 export async function POST(request: Request) {
-  const supabase = await createClient();
+  const authError = await requireAdmin();
+  if (authError) return authError;
 
-  // Verify auth
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const supabase = createAdminClient();
 
   const body = await request.json();
   const { title, slug, excerpt, body_md, tags, cover_path, status } = body;

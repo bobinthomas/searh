@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { requireAdmin } from "@/lib/admin-auth";
 
 // GET /api/projects/:id
 export async function GET(
@@ -7,7 +8,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("projects")
     .select("*, project_images(*)")
@@ -26,13 +27,10 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  const supabase = await createClient();
+  const authError = await requireAdmin();
+  if (authError) return authError;
 
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
+  const supabase = createAdminClient();
   const body = await request.json();
   const updates: Record<string, unknown> = {};
 
@@ -79,24 +77,18 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  const supabase = await createClient();
+  const authError = await requireAdmin();
+  if (authError) return authError;
 
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  // Delete associated images from storage first
+  const supabase = createAdminClient();
   const { data: images } = await supabase
     .from("project_images")
     .select("storage_path")
     .eq("project_id", id);
 
   if (images && images.length > 0) {
-    const { createAdminClient } = await import("@/lib/supabase/admin");
-    const admin = createAdminClient();
     const paths = images.map((img) => img.storage_path);
-    await admin.storage.from("media").remove(paths);
+    await supabase.storage.from("media").remove(paths);
   }
 
   const { error } = await supabase.from("projects").delete().eq("id", id);
