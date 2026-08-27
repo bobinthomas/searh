@@ -1,9 +1,9 @@
 "use client";
 
 import { useRef, useState } from "react";
+import NextImage from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 
 interface ImageUploadProps {
@@ -176,11 +176,14 @@ export function ImageUpload({
       </div>
 
       {displayUrl && (
-        <div className="relative overflow-hidden rounded-md border border-[var(--color-void-line)]">
-          <img
+        <div className="relative h-40 w-full overflow-hidden rounded-md border border-[var(--color-void-line)]">
+          <NextImage
             src={displayUrl}
             alt="Cover preview"
-            className="h-40 w-full object-cover"
+            fill
+            unoptimized
+            sizes="100vw"
+            className="object-cover"
           />
         </div>
       )}

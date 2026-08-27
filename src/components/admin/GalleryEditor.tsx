@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import NextImage from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -283,9 +284,11 @@ export function GalleryEditor({
               </div>
 
               {url && (
-                <img
+                <NextImage
                   src={url}
                   alt={img.alt || "Gallery image"}
+                  width={64}
+                  height={64}
                   className="h-16 w-16 rounded object-cover"
                 />
               )}

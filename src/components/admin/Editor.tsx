@@ -72,17 +72,6 @@ export function Editor({ type, initialData, isNew }: EditorProps) {
     mountedRef.current = true;
   }, [data]);
 
-  // Autosave drafts every 30 seconds
-  useEffect(() => {
-    if (data.status !== "draft" || !dirty || isNew) return;
-    autosaveTimer.current = setTimeout(() => {
-      handleSave(true); // silent save
-    }, 30000);
-    return () => {
-      if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
-    };
-  }, [data, dirty, isNew]);
-
   // Warn on navigate away with unsaved changes
   useEffect(() => {
     const handler = (e: BeforeUnloadEvent) => {
@@ -146,7 +135,8 @@ export function Editor({ type, initialData, isNew }: EditorProps) {
         const result = await res.json();
 
         if (isNew && result.id) {
-          // Redirect to edit URL for newly created items              router.replace(`/admin/dashboard/${type}s/${result.id}`);
+          // Redirect to edit URL for newly created items
+          router.replace(`/admin/dashboard/${type}s/${result.id}`);
         } else {
           setData((prev) => ({ ...prev, id: result.id ?? prev.id }));
         }
@@ -161,6 +151,17 @@ export function Editor({ type, initialData, isNew }: EditorProps) {
     },
     [data, type, isNew, router],
   );
+
+  // Autosave drafts every 30 seconds
+  useEffect(() => {
+    if (data.status !== "draft" || !dirty || isNew) return;
+    autosaveTimer.current = setTimeout(() => {
+      handleSave(true); // silent save
+    }, 30000);
+    return () => {
+      if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
+    };
+  }, [data, dirty, isNew, handleSave]);
 
   const handlePublish = useCallback(async () => {
     // Validate alt text on cover image before publish

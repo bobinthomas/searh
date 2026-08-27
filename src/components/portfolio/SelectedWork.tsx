@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { images, type Work } from "@/data/content";
 
 type Props = {
@@ -32,13 +33,14 @@ export function SelectedWork({ works, onOpen }: Props) {
               onClick={() => onOpen(work)}
               className="block w-full border border-ink bg-paper"
             >
-              <img
+              <Image
                 src={img.src}
                 alt={work.alt}
                 width={img.width}
                 height={img.height}
                 loading="lazy"
-                decoding="async"
+                sizes="(max-width: 768px) 100vw, 66vw"
+                style={{ width: "auto", height: "auto" }}
                 className="mx-auto block h-auto max-h-[540px] w-auto"
               />
             </button>

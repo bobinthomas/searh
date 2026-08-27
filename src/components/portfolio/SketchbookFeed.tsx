@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { images, type Work } from "@/data/content";
 
 type Props = {
@@ -23,13 +24,14 @@ export function SketchbookFeed({ works, onOpen }: Props) {
               onClick={() => onOpen(work)}
               className="block w-full border border-ink bg-paper"
             >
-              <img
+              <Image
                 src={img.src}
                 alt={work.alt}
                 width={img.width}
                 height={img.height}
-                loading={i < 3 ? "eager" : "lazy"}
-                decoding={i < 3 ? "sync" : "async"}
+                priority={i < 3}
+                sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                style={{ width: "100%", height: "auto" }}
                 className="block h-auto w-full"
               />
             </button>

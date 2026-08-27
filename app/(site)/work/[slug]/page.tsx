@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { mediaUrl } from "@/lib/images";
@@ -135,17 +136,27 @@ export default async function WorkSlugPage({
                   alt: string | null;
                   width: number | null;
                   height: number | null;
-                }) => (
-                  <img
-                    key={img.id}
-                    src={mediaUrl(img.storage_path)}
-                    alt={img.alt || project.title}
-                    className="w-full rounded object-cover"
-                    {...(img.width && img.height
-                      ? { width: img.width, height: img.height }
-                      : {})}
-                  />
-                ),
+                }) =>
+                  img.width && img.height ? (
+                    <Image
+                      key={img.id}
+                      src={mediaUrl(img.storage_path)}
+                      alt={img.alt || project.title}
+                      width={img.width}
+                      height={img.height}
+                      sizes="(max-width: 768px) 100vw, 768px"
+                      style={{ width: "100%", height: "auto" }}
+                      className="rounded object-cover"
+                    />
+                  ) : (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      key={img.id}
+                      src={mediaUrl(img.storage_path)}
+                      alt={img.alt || project.title}
+                      className="w-full rounded object-cover"
+                    />
+                  ),
               )}
             </div>
           )}

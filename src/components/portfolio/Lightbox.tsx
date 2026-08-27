@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import Image from "next/image";
 
 type Props = {
   work: { title: string; medium: string };
@@ -52,11 +53,13 @@ export function Lightbox({ work, image, onClose }: Props) {
       onClick={onClose}
       className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-ink/95 p-4"
     >
-      <img
+      <Image
         src={image.src}
         alt={work.title}
         width={image.width}
         height={image.height}
+        sizes="100vw"
+        style={{ width: "auto", height: "auto" }}
         className="max-h-[80vh] w-auto max-w-full object-contain"
         onClick={(e) => e.stopPropagation()}
       />

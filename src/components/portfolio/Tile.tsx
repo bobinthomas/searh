@@ -1,3 +1,4 @@
+import Image from "next/image";
 import type { PortfolioWork } from "@/components/portfolio/PortfolioShell";
 import { mediaUrl } from "@/lib/images";
 
@@ -18,14 +19,13 @@ export function Tile({ work, index, onOpen }: Props) {
       onClick={() => onOpen(work)}
       className="group relative block aspect-[4/5] w-full overflow-hidden bg-void-2 text-left"
     >
-      <img
+      <Image
         src={imgSrc}
         alt={work.alt}
-        width={1600}
-        height={1100}
-        loading={index < 2 ? "eager" : "lazy"}
-        decoding={index < 2 ? "sync" : "async"}
-        className="h-full w-full object-cover"
+        fill
+        sizes="(max-width: 768px) 100vw, 50vw"
+        priority={index < 2}
+        className="object-cover"
       />
       <span className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 bg-gradient-to-t from-void/90 to-transparent p-4 opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-visible:opacity-100">
         <span className="min-w-0">
