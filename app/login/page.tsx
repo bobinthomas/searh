@@ -41,7 +41,7 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-[var(--color-void)]">
       <form onSubmit={handleLogin} className="w-full max-w-sm space-y-6">
         <div className="space-y-2 text-center">
-          <h1 className="font-[family-name:var(--font-space-grotesk)] text-2xl font-bold text-[var(--color-paper)]">
+          <h1 className="font-[family-name:var(--font-display)] text-2xl font-bold text-[var(--color-paper)]">
             Admin
           </h1>
         </div>

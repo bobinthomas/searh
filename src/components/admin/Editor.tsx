@@ -229,7 +229,7 @@ export function Editor({ type, initialData, isNew }: EditorProps) {
     <div className="space-y-6">
       {/* Top bar with save/publish */}
       <div className="flex items-center justify-between">
-        <h1 className="font-[family-name:var(--font-space-grotesk)] text-lg font-bold">
+        <h1 className="font-[family-name:var(--font-display)] text-lg font-bold">
           {isNew ? `New ${type}` : `Edit ${type}`}
         </h1>
         <div className="flex items-center gap-3">
@@ -317,9 +317,10 @@ export function Editor({ type, initialData, isNew }: EditorProps) {
             />
             {type === "project" && (
               <p className="text-xs text-[var(--color-muted-ink)]">
-                Add <code>sketchbook</code> or <code>selected</code> to feature this on the
-                homepage — published projects without one of these tags only appear on
-                the /work page.
+                Published projects show on the homepage by default. Add{" "}
+                <code>selected</code> to also feature it in Selected Work, or{" "}
+                <code>hide-from-home</code> to keep it off the homepage (it still
+                shows on /work).
               </p>
             )}
           </div>

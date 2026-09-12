@@ -3,6 +3,7 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { mediaUrl } from "@/lib/images";
+import { Reveal } from "@/components/anim/Reveal";
 
 export const revalidate = 3600;
 
@@ -92,33 +93,37 @@ export default async function WorkSlugPage({
       />
       <main className="min-h-screen bg-[var(--color-paper)] px-6 py-24">
         <article className="mx-auto max-w-4xl">
-          <header className="mb-12">
-            <h1 className="font-[family-name:var(--font-space-grotesk)] text-4xl font-medium tracking-tight text-[var(--color-ink)] md:text-5xl">
-              {project.title}
-            </h1>
-            {project.summary && (
-              <p className="mt-4 text-lg text-[var(--color-muted-ink)]">
-                {project.summary}
-              </p>
-            )}
-            <div className="mt-4 flex gap-2">
-              {project.tags?.map((tag: string) => (
-                <span
-                  key={tag}
-                  className="rounded-full bg-[var(--color-void)] px-3 py-1 text-xs text-[var(--color-paper)]"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-          </header>
+          <Reveal y={30} scale={0.97}>
+            <header className="mb-12">
+              <h1 className="font-[family-name:var(--font-display)] text-4xl font-medium tracking-tight text-[var(--color-ink)] md:text-5xl">
+                {project.title}
+              </h1>
+              {project.summary && (
+                <p className="mt-4 text-lg text-[var(--color-muted-ink)]">
+                  {project.summary}
+                </p>
+              )}
+              <div className="mt-4 flex gap-2">
+                {project.tags?.map((tag: string) => (
+                  <span
+                    key={tag}
+                    className="rounded-full bg-[var(--color-void)] px-3 py-1 text-xs text-[var(--color-paper)]"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </header>
+          </Reveal>
 
           {project.cover_path && (
-            <img
-              src={mediaUrl(project.cover_path)}
-              alt={project.title}
-              className="mb-12 w-full rounded object-cover"
-            />
+            <Reveal y={50} scale={0.9} delay={0.1}>
+              <img
+                src={mediaUrl(project.cover_path)}
+                alt={project.title}
+                className="mb-12 w-full rounded object-cover"
+              />
+            </Reveal>
           )}
 
           {project.body_md && (
@@ -136,27 +141,28 @@ export default async function WorkSlugPage({
                   alt: string | null;
                   width: number | null;
                   height: number | null;
-                }) =>
-                  img.width && img.height ? (
-                    <Image
-                      key={img.id}
-                      src={mediaUrl(img.storage_path)}
-                      alt={img.alt || project.title}
-                      width={img.width}
-                      height={img.height}
-                      sizes="(max-width: 768px) 100vw, 768px"
-                      style={{ width: "100%", height: "auto" }}
-                      className="rounded object-cover"
-                    />
-                  ) : (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      key={img.id}
-                      src={mediaUrl(img.storage_path)}
-                      alt={img.alt || project.title}
-                      className="w-full rounded object-cover"
-                    />
-                  ),
+                }) => (
+                  <Reveal key={img.id} y={50} scale={0.92}>
+                    {img.width && img.height ? (
+                      <Image
+                        src={mediaUrl(img.storage_path)}
+                        alt={img.alt || project.title}
+                        width={img.width}
+                        height={img.height}
+                        sizes="(max-width: 768px) 100vw, 768px"
+                        style={{ width: "100%", height: "auto" }}
+                        className="rounded object-cover"
+                      />
+                    ) : (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={mediaUrl(img.storage_path)}
+                        alt={img.alt || project.title}
+                        className="w-full rounded object-cover"
+                      />
+                    )}
+                  </Reveal>
+                ),
               )}
             </div>
           )}

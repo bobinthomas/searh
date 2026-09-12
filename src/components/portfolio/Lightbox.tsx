@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import Image from "next/image";
+import { gsap, prefersReducedMotion } from "@/lib/gsap";
 
 type Props = {
   work: { title: string; medium: string };
@@ -12,12 +13,41 @@ type Props = {
 export function Lightbox({ work, image, onClose }: Props) {
   const closeRef = useRef<HTMLButtonElement | null>(null);
   const dialogRef = useRef<HTMLDivElement | null>(null);
+  const imgRef = useRef<HTMLImageElement | null>(null);
+
+  const handleClose = useCallback(() => {
+    if (prefersReducedMotion() || !dialogRef.current) {
+      onClose();
+      return;
+    }
+    const tl = gsap.timeline({ onComplete: onClose });
+    tl.to(imgRef.current, { opacity: 0, scale: 0.82, duration: 0.25, ease: "power2.in" }, 0);
+    tl.to(dialogRef.current, { opacity: 0, duration: 0.3, ease: "power2.in" }, 0);
+  }, [onClose]);
+
+  // Entrance: backdrop fade + image scale in with a slight overshoot.
+  useEffect(() => {
+    if (prefersReducedMotion()) return;
+    const ctx = gsap.context(() => {
+      gsap.fromTo(
+        dialogRef.current,
+        { opacity: 0 },
+        { opacity: 1, duration: 0.3, ease: "power2.out" },
+      );
+      gsap.fromTo(
+        imgRef.current,
+        { opacity: 0, scale: 0.78, y: 24 },
+        { opacity: 1, scale: 1, y: 0, duration: 0.65, ease: "back.out(1.6)" },
+      );
+    });
+    return () => ctx.revert();
+  }, []);
 
   useEffect(() => {
     closeRef.current?.focus();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        onClose();
+        handleClose();
         return;
       }
       if (e.key !== "Tab") return;
@@ -42,7 +72,7 @@ export function Lightbox({ work, image, onClose }: Props) {
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = prev;
     };
-  }, [onClose]);
+  }, [handleClose]);
 
   return (
     <div
@@ -50,10 +80,11 @@ export function Lightbox({ work, image, onClose }: Props) {
       aria-modal="true"
       aria-label={work.title}
       ref={dialogRef}
-      onClick={onClose}
+      onClick={handleClose}
       className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-ink/95 p-4"
     >
       <Image
+        ref={imgRef}
         src={image.src}
         alt={work.title}
         width={image.width}
@@ -70,7 +101,7 @@ export function Lightbox({ work, image, onClose }: Props) {
         <button
           ref={closeRef}
           type="button"
-          onClick={onClose}
+          onClick={handleClose}
           className="bg-lime px-2 py-1 uppercase tracking-widest text-ink"
         >
           Close [esc]

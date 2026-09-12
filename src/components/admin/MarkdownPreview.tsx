@@ -16,17 +16,17 @@ export function MarkdownPreview({ content }: { content: string }) {
       <ReactMarkdown
         components={{
           h1: ({ children }) => (
-            <h1 className="font-[family-name:var(--font-space-grotesk)] text-2xl font-bold">
+            <h1 className="font-[family-name:var(--font-display)] text-2xl font-bold">
               {children}
             </h1>
           ),
           h2: ({ children }) => (
-            <h2 className="font-[family-name:var(--font-space-grotesk)] text-xl font-bold">
+            <h2 className="font-[family-name:var(--font-display)] text-xl font-bold">
               {children}
             </h2>
           ),
           h3: ({ children }) => (
-            <h3 className="font-[family-name:var(--font-space-grotesk)] text-lg font-semibold">
+            <h3 className="font-[family-name:var(--font-display)] text-lg font-semibold">
               {children}
             </h3>
           ),

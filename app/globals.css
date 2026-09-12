@@ -20,9 +20,10 @@
  */
 
 @theme inline {
-  --font-display: "Space Grotesk", system-ui, sans-serif;
-  --font-sans: "Archivo", system-ui, sans-serif;
-  --font-mono: "Space Grotesk", ui-monospace, monospace;
+  --font-display: "Manrope", system-ui, sans-serif;
+  --font-sans: "Manrope", system-ui, sans-serif;
+  --font-mono: "Manrope", ui-monospace, monospace;
+  --font-heavy: "Archivo Black", system-ui, sans-serif;
   --color-ink: var(--ink);
   --color-paper: var(--paper);
   --color-accent-hot: var(--accent-hot);
@@ -79,11 +80,11 @@
 
 :root {
   --radius: 0px;
-  --ink: #1c1c1c;
-  --paper: #fbfaf3;
+  --ink: #111111;
+  --paper: #ffffff;
   --lime: #d0fa66;
   --accent-hot: #688f05;
-  --muted-ink: #6b6b64;
+  --muted-ink: #666666;
   --panel: #d0fa66;
   --void: #0f0f0f;
   --void-2: #181818;
@@ -173,7 +174,7 @@
 
 @layer base {
   html {
-    font-family: var(--font-sans);
+    font-family: var(--font-display);
   }
 
   :focus-visible {

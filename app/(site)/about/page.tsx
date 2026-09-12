@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Reveal } from "@/components/anim/Reveal";
 
 export const revalidate = 3600;
 
@@ -18,8 +19,8 @@ export default function AboutPage() {
   return (
     <main className="min-h-screen bg-[var(--color-paper)] px-6 py-24">
       <div className="mx-auto grid max-w-4xl gap-12 md:grid-cols-2">
-        <div>
-          <h1 className="font-[family-name:var(--font-space-grotesk)] text-4xl font-medium tracking-tight text-[var(--color-ink)] md:text-5xl">
+        <Reveal y={40} scale={0.95}>
+          <h1 className="font-[family-name:var(--font-display)] text-4xl font-medium tracking-tight text-[var(--color-ink)] md:text-5xl">
             About
           </h1>
           <p className="mt-6 max-w-prose text-lg leading-relaxed text-[var(--color-muted-ink)]">
@@ -29,9 +30,9 @@ export default function AboutPage() {
             to study design so I can keep drawing with people who push harder
             than I do.
           </p>
-        </div>
+        </Reveal>
 
-        <div>
+        <Reveal y={40} scale={0.95} delay={0.15}>
           <h2 className="font-mono text-xs font-bold uppercase tracking-[0.24em] text-[var(--color-muted-ink)]">
             Contact
           </h2>
@@ -49,7 +50,7 @@ export default function AboutPage() {
                     href={href}
                     target={href.startsWith("http") ? "_blank" : undefined}
                     rel={href.startsWith("http") ? "me noreferrer" : undefined}
-                    className="min-w-0 flex-1 truncate text-[var(--color-ink)] underline underline-offset-4 hover:text-[var(--color-lime)]"
+                    className="min-w-0 flex-1 truncate text-[var(--color-ink)] underline underline-offset-4 hover:opacity-60"
                   >
                     {value}
                   </a>
@@ -61,7 +62,7 @@ export default function AboutPage() {
               </li>
             ))}
           </ul>
-        </div>
+        </Reveal>
       </div>
     </main>
   );

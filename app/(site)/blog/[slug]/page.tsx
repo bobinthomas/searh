@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { mediaUrl } from "@/lib/images";
+import { Reveal } from "@/components/anim/Reveal";
 
 export const revalidate = 3600;
 
@@ -86,42 +87,46 @@ export default async function BlogSlugPage({
       />
       <main className="min-h-screen bg-[var(--color-paper)] px-6 py-24">
         <article className="mx-auto max-w-3xl">
-          <header className="mb-12">
-            <h1 className="font-[family-name:var(--font-space-grotesk)] text-4xl font-medium tracking-tight text-[var(--color-ink)] md:text-5xl">
-              {post.title}
-            </h1>
-            {post.excerpt && (
-              <p className="mt-4 text-lg text-[var(--color-muted-ink)]">
-                {post.excerpt}
-              </p>
-            )}
-            <div className="mt-4 flex items-center gap-4 text-sm text-[var(--color-muted-ink)]">
-              <time dateTime={post.published_at}>
-                {new Date(post.published_at).toLocaleDateString("en-US", {
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                })}
-              </time>
-              <div className="flex gap-2">
-                {post.tags?.map((tag: string) => (
-                  <span
-                    key={tag}
-                    className="rounded-full bg-[var(--color-void)] px-3 py-1 text-xs text-[var(--color-paper)]"
-                  >
-                    {tag}
-                  </span>
-                ))}
+          <Reveal y={30} scale={0.97}>
+            <header className="mb-12">
+              <h1 className="font-[family-name:var(--font-display)] text-4xl font-medium tracking-tight text-[var(--color-ink)] md:text-5xl">
+                {post.title}
+              </h1>
+              {post.excerpt && (
+                <p className="mt-4 text-lg text-[var(--color-muted-ink)]">
+                  {post.excerpt}
+                </p>
+              )}
+              <div className="mt-4 flex items-center gap-4 text-sm text-[var(--color-muted-ink)]">
+                <time dateTime={post.published_at}>
+                  {new Date(post.published_at).toLocaleDateString("en-US", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })}
+                </time>
+                <div className="flex gap-2">
+                  {post.tags?.map((tag: string) => (
+                    <span
+                      key={tag}
+                      className="rounded-full bg-[var(--color-void)] px-3 py-1 text-xs text-[var(--color-paper)]"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
               </div>
-            </div>
-          </header>
+            </header>
+          </Reveal>
 
           {post.cover_path && (
-            <img
-              src={mediaUrl(post.cover_path)}
-              alt={post.title}
-              className="mb-12 w-full rounded object-cover"
-            />
+            <Reveal y={50} scale={0.9} delay={0.1}>
+              <img
+                src={mediaUrl(post.cover_path)}
+                alt={post.title}
+                className="mb-12 w-full rounded object-cover"
+              />
+            </Reveal>
           )}
 
           {post.body_md && (

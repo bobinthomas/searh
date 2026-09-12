@@ -2,9 +2,8 @@ import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import PortfolioShell, {
   type PortfolioWork,
-  type LogEntry,
 } from "@/components/portfolio/PortfolioShell";
-import logData from "@/data/log.json";
+import { HomeHero } from "@/components/portfolio/HomeHero";
 
 export const revalidate = 3600;
 
@@ -49,7 +48,7 @@ function parseBodyMd(bodyMd: string | null): {
 }
 
 async function getPortfolioData(): Promise<{
-  sketchbook: PortfolioWork[];
+  featured: PortfolioWork[];
   selected: PortfolioWork[];
 }> {
   try {
@@ -63,10 +62,10 @@ async function getPortfolioData(): Promise<{
 
     if (error) {
       console.error("Failed to fetch projects:", error.message);
-      return { sketchbook: [], selected: [] };
+      return { featured: [], selected: [] };
     }
 
-    const sketchbook: PortfolioWork[] = [];
+    const featured: PortfolioWork[] = [];
     const selected: PortfolioWork[] = [];
 
     for (const p of projects ?? []) {
@@ -83,20 +82,21 @@ async function getPortfolioData(): Promise<{
         published_at: p.published_at,
       };
 
-      if (p.tags.includes("sketchbook")) sketchbook.push(work);
+      // Every published project shows on the homepage by default; tag
+      // "hide-from-home" to keep one off (it still shows on /work).
+      if (!p.tags.includes("hide-from-home")) featured.push(work);
       if (p.tags.includes("selected")) selected.push(work);
     }
 
-    return { sketchbook, selected };
+    return { featured, selected };
   } catch {
     // Supabase not configured or unreachable — render empty
-    return { sketchbook: [], selected: [] };
+    return { featured: [], selected: [] };
   }
 }
 
 export default async function HomePage() {
-  const { sketchbook, selected } = await getPortfolioData();
-  const log = logData as LogEntry[];
+  const { featured, selected } = await getPortfolioData();
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -116,7 +116,8 @@ export default async function HomePage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <PortfolioShell sketchbook={sketchbook} selected={selected} log={log} />
+      <HomeHero />
+      <PortfolioShell featured={featured} selected={selected} />
     </>
   );
 }

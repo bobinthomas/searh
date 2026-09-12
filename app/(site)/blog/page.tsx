@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { Reveal } from "@/components/anim/Reveal";
+import { BlogList } from "@/components/work/BlogList";
 
 export const revalidate = 3600;
 
@@ -35,39 +36,18 @@ export default async function BlogPage() {
   return (
     <main className="min-h-screen bg-[var(--color-paper)] px-6 py-24">
       <div className="mx-auto max-w-4xl">
-        <h1 className="font-[family-name:var(--font-space-grotesk)] text-4xl font-medium tracking-tight text-[var(--color-ink)] md:text-5xl">
-          Blog
-        </h1>
+        <Reveal y={30} scale={0.96}>
+          <h1 className="font-[family-name:var(--font-display)] text-4xl font-medium tracking-tight text-[var(--color-ink)] md:text-5xl">
+            Blog
+          </h1>
+        </Reveal>
 
         {posts.length === 0 ? (
           <p className="mt-4 text-lg text-[var(--color-muted-ink)]">
             No posts published yet — check back soon.
           </p>
         ) : (
-          <div className="mt-12 space-y-8">
-            {posts.map((post) => (
-              <Link key={post.id} href={`/blog/${post.slug}`} className="group block">
-                <h2 className="font-[family-name:var(--font-space-grotesk)] text-xl font-medium text-[var(--color-ink)] group-hover:text-[var(--color-lime)]">
-                  {post.title}
-                </h2>
-                {post.excerpt && (
-                  <p className="mt-1 text-[var(--color-muted-ink)]">{post.excerpt}</p>
-                )}
-                {post.published_at && (
-                  <time
-                    dateTime={post.published_at}
-                    className="mt-2 block text-sm text-[var(--color-muted-ink)]"
-                  >
-                    {new Date(post.published_at).toLocaleDateString("en-US", {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })}
-                  </time>
-                )}
-              </Link>
-            ))}
-          </div>
+          <BlogList posts={posts} />
         )}
       </div>
     </main>

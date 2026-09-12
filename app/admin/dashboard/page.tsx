@@ -21,7 +21,7 @@ export default async function AdminDashboard() {
     <div className="space-y-10">
       <div>
         <div className="mb-4 flex items-center justify-between">
-          <h1 className="font-[family-name:var(--font-space-grotesk)] text-xl font-bold">
+          <h1 className="font-[family-name:var(--font-display)] text-xl font-bold">
             Posts
           </h1>
           <Button
@@ -67,7 +67,7 @@ export default async function AdminDashboard() {
 
       <div>
         <div className="mb-4 flex items-center justify-between">
-          <h1 className="font-[family-name:var(--font-space-grotesk)] text-xl font-bold">
+          <h1 className="font-[family-name:var(--font-display)] text-xl font-bold">
             Projects
           </h1>
           <Button

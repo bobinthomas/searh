@@ -20,7 +20,7 @@ export default async function AdminLayout({
         <div className="flex items-center gap-6">
           <Link
             href="/admin/dashboard"
-            className="font-[family-name:var(--font-space-grotesk)] text-sm font-bold tracking-tight text-[var(--color-paper)]"
+            className="font-[family-name:var(--font-display)] text-sm font-bold tracking-tight text-[var(--color-paper)]"
           >
             admin
           </Link>

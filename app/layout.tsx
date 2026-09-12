@@ -1,19 +1,19 @@
 import type { Metadata } from "next";
-import { Space_Grotesk, Archivo } from "next/font/google";
+import { Manrope, Archivo_Black } from "next/font/google";
 import "./globals.css";
 
-const spaceGrotesk = Space_Grotesk({
+const manrope = Manrope({
   subsets: ["latin"],
-  weight: ["500", "700"],
+  weight: ["400", "500", "700", "800"],
   display: "swap",
   variable: "--font-display",
 });
 
-const archivo = Archivo({
+const archivoBlack = Archivo_Black({
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
+  weight: "400",
   display: "swap",
-  variable: "--font-sans",
+  variable: "--font-heavy",
 });
 
 export const metadata: Metadata = {
@@ -38,7 +38,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${spaceGrotesk.variable} ${archivo.variable}`}>
+    <html lang="en" className={`${manrope.variable} ${archivoBlack.variable}`}>
       <head>
         <link rel="icon" href="/favicon.ico" type="image/x-icon" />
       </head>
