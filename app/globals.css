@@ -126,6 +126,32 @@
   --sidebar-ring: oklch(0.704 0.04 256.788);
 }
 
+/*
+ * Dark mode for the public site only. Scoped to `[data-theme="dark"]`
+ * (set on the #site-root wrapper in app/(site)/layout.tsx) rather than
+ * `.dark`/`:root`, because `--paper`/`--ink`/`--muted-ink` are also used by
+ * the always-dark admin panel with the opposite assumption (text-on-void
+ * assumed permanently light) — admin renders from a separate layout outside
+ * this selector's reach, so it can never match there.
+ *
+ * Overrides the `--color-*` names (not `--ink`/`--paper`/`--muted-ink`
+ * directly): `@theme inline` above bakes `--color-ink: var(--ink)` etc. into
+ * a resolved static value at build time rather than a live reference, so
+ * redefining `--ink` deeper in the DOM has no runtime effect — every
+ * component's `var(--color-ink)` usage is what actually needs overriding.
+ */
+[data-theme="dark"] {
+  color-scheme: dark;
+  --color-ink: #f2f0ea;
+  --color-paper: #101010;
+  --color-muted-ink: #9a9a92;
+  --color-accent-hot: #d0fa66;
+  /* :focus-visible below references this raw token directly, not through
+     @theme inline, so unlike --ink/--paper/--muted-ink it does need
+     overriding here too for the focus ring to stay visible on dark bg. */
+  --accent-hot: #d0fa66;
+}
+
 .dark {
   --background: oklch(0.129 0.042 264.695);
   --foreground: oklch(0.984 0.003 247.858);

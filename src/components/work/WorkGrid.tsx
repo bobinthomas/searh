@@ -13,6 +13,7 @@ type Project = {
   title: string;
   summary: string | null;
   cover_path: string | null;
+  published_at: string | null;
 };
 
 export function WorkGrid({ projects }: { projects: Project[] }) {
@@ -42,7 +43,7 @@ export function WorkGrid({ projects }: { projects: Project[] }) {
             className="group block"
           >
             {cover && (
-              <div className="relative aspect-[4/3] w-full overflow-hidden rounded bg-[var(--color-void-2)]">
+              <div className="relative aspect-[4/3] w-full overflow-hidden rounded bg-[var(--color-ink)]/5">
                 <Image
                   ref={(el) => {
                     imgRefs.current[i] = el;
@@ -55,7 +56,13 @@ export function WorkGrid({ projects }: { projects: Project[] }) {
                 />
               </div>
             )}
-            <h2 className="mt-3 font-[family-name:var(--font-display)] text-lg font-medium text-[var(--color-ink)] group-hover:underline">
+            <span className="mt-3 block font-mono text-[11px] uppercase tracking-[0.2em] text-[var(--color-muted-ink)]">
+              {String(i + 1).padStart(2, "0")} /{" "}
+              {project.published_at
+                ? project.published_at.slice(0, 10).split("-").reverse().join("/")
+                : "—"}
+            </span>
+            <h2 className="mt-1 font-[family-name:var(--font-display)] text-lg font-medium text-[var(--color-ink)] group-hover:underline">
               {project.title}
             </h2>
             {project.summary && (

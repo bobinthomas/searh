@@ -81,7 +81,7 @@ export function Lightbox({ work, image, onClose }: Props) {
       aria-label={work.title}
       ref={dialogRef}
       onClick={handleClose}
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-ink/95 p-4"
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-black/95 p-4"
     >
       <Image
         ref={imgRef}
@@ -94,7 +94,7 @@ export function Lightbox({ work, image, onClose }: Props) {
         className="max-h-[80vh] w-auto max-w-full object-contain"
         onClick={(e) => e.stopPropagation()}
       />
-      <div className="flex w-full max-w-3xl items-baseline justify-between gap-4 font-mono text-xs text-paper">
+      <div className="flex w-full max-w-3xl items-baseline justify-between gap-4 font-mono text-xs text-white">
         <p className="uppercase tracking-widest">
           {work.title} — {work.medium}
         </p>
@@ -102,7 +102,7 @@ export function Lightbox({ work, image, onClose }: Props) {
           ref={closeRef}
           type="button"
           onClick={handleClose}
-          className="bg-lime px-2 py-1 uppercase tracking-widest text-ink"
+          className="bg-lime px-2 py-1 uppercase tracking-widest text-black"
         >
           Close [esc]
         </button>

@@ -56,7 +56,7 @@ export default function PortfolioShell({ featured, selected }: Props) {
             {featured.length} pages
           </span>
         </div>
-        <FeaturedGrid works={featured} onOpen={setOpen} />
+        <FeaturedGrid works={featured} />
       </section>
 
       {/* selected work */}
@@ -135,11 +135,6 @@ export default function PortfolioShell({ featured, selected }: Props) {
           );
         })}
       </section>
-
-      <footer className="flex items-center justify-between border-t border-[var(--color-ink)]/10 px-4 py-5 font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-muted-ink)] md:px-12">
-        <span>©2026 serahbobin</span>
-        <span>Drawing daily</span>
-      </footer>
 
       {open && openCover ? (
         <Lightbox

@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { Reveal } from "@/components/anim/Reveal";
+import { ScrambleText } from "@/components/anim/ScrambleText";
+import { GridOverlay } from "@/components/site/GridOverlay";
 import { WorkGrid } from "@/components/work/WorkGrid";
 
 export const revalidate = 3600;
@@ -34,11 +36,12 @@ export default async function WorkPage() {
   const projects = await getProjects();
 
   return (
-    <main className="min-h-screen bg-[var(--color-paper)] px-6 py-24">
-      <div className="mx-auto max-w-4xl">
+    <main className="relative min-h-screen bg-[var(--color-paper)] px-6 py-24">
+      <GridOverlay cols={1} rows={1} />
+      <div className="relative mx-auto max-w-4xl">
         <Reveal y={30} scale={0.96}>
           <h1 className="font-[family-name:var(--font-display)] text-4xl font-medium tracking-tight text-[var(--color-ink)] md:text-5xl">
-            Work
+            <ScrambleText text="Work" />
           </h1>
         </Reveal>
 

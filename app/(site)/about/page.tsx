@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Reveal } from "@/components/anim/Reveal";
+import { ScrambleText } from "@/components/anim/ScrambleText";
+import { GridOverlay } from "@/components/site/GridOverlay";
 
 export const revalidate = 3600;
 
@@ -17,11 +19,12 @@ const contact = [
 
 export default function AboutPage() {
   return (
-    <main className="min-h-screen bg-[var(--color-paper)] px-6 py-24">
-      <div className="mx-auto grid max-w-4xl gap-12 md:grid-cols-2">
+    <main className="relative min-h-screen bg-[var(--color-paper)] px-6 py-24">
+      <GridOverlay cols={1} rows={1} />
+      <div className="relative mx-auto grid max-w-4xl gap-12 md:grid-cols-2">
         <Reveal y={40} scale={0.95}>
           <h1 className="font-[family-name:var(--font-display)] text-4xl font-medium tracking-tight text-[var(--color-ink)] md:text-5xl">
-            About
+            <ScrambleText text="About" />
           </h1>
           <p className="mt-6 max-w-prose text-lg leading-relaxed text-[var(--color-muted-ink)]">
             I am a student in Kerala, drawing daily since 2023. Most of what is

@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { gsap, prefersReducedMotion } from "@/lib/gsap";
 import { attachHoverScale } from "@/components/anim/hoverScale";
+import { ThemeToggle } from "@/components/site/ThemeToggle";
 
 const NAV = [
   { label: "featured", href: "/" },
@@ -18,7 +19,7 @@ export function SiteHeader() {
   const rootRef = useRef<HTMLElement>(null);
   const navRefs = useRef<(HTMLAnchorElement | null)[]>([]);
 
-  // Entrance: wordmark, email, tagline, nav stagger in on first load.
+  // Entrance: wordmark, tagline, nav stagger in on first load.
   useEffect(() => {
     const el = rootRef.current;
     if (!el || prefersReducedMotion()) return;
@@ -51,28 +52,40 @@ export function SiteHeader() {
   return (
     <header
       ref={rootRef}
-      className="border-b border-[var(--color-ink)]/10 bg-[var(--color-paper)] px-6 py-10 text-center"
+      className="relative grid grid-cols-1 gap-3 border-b border-[var(--color-ink)]/10 bg-[var(--color-paper)] px-4 py-6 sm:grid-cols-[auto_1fr_auto] sm:items-center sm:gap-0 sm:divide-x sm:divide-[var(--color-ink)]/10 md:px-12"
     >
-      <Link
-        href="/"
-        data-reveal
-        className="inline-block font-[family-name:var(--font-display)] text-2xl font-bold tracking-tight text-[var(--color-ink)] sm:text-3xl"
+      <span
+        aria-hidden="true"
+        className="absolute left-4 top-4 hidden h-3 w-3 sm:block"
       >
-        serahbobin
-      </Link>
-      <p
-        data-reveal
-        className="mt-1 text-xs font-medium uppercase tracking-[0.14em] text-[var(--color-muted-ink)]"
+        <span className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-[var(--color-ink)]/25" />
+        <span className="absolute left-0 top-1/2 h-px w-full -translate-y-1/2 bg-[var(--color-ink)]/25" />
+      </span>
+      <span
+        aria-hidden="true"
+        className="absolute right-4 top-4 hidden h-3 w-3 sm:block"
       >
-        <a href="mailto:hello@serahbobin.com" className="hover:text-[var(--color-ink)]">
-          hello@serahbobin.com
-        </a>
-      </p>
-      <p data-reveal className="mt-2 text-sm italic text-[var(--color-muted-ink)]">
-        illustration, sketchbook &amp; graphic design
-      </p>
+        <span className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-[var(--color-ink)]/25" />
+        <span className="absolute left-0 top-1/2 h-px w-full -translate-y-1/2 bg-[var(--color-ink)]/25" />
+      </span>
 
-      <nav className="mt-6 flex items-center justify-center gap-6 text-sm">
+      <div className="sm:pr-6">
+        <Link
+          href="/"
+          data-reveal
+          className="inline-block font-[family-name:var(--font-display)] text-xl font-bold tracking-tight text-[var(--color-ink)] sm:text-2xl"
+        >
+          serahbobin
+        </Link>
+      </div>
+
+      <div className="sm:px-6">
+        <p data-reveal className="text-sm italic text-[var(--color-muted-ink)]">
+          illustration, sketchbook &amp; graphic design
+        </p>
+      </div>
+
+      <nav className="flex flex-wrap items-center gap-5 text-sm sm:justify-end sm:pl-6">
         {NAV.map((item, i) => {
           const active =
             item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
@@ -94,6 +107,7 @@ export function SiteHeader() {
             </Link>
           );
         })}
+        <ThemeToggle />
       </nav>
     </header>
   );

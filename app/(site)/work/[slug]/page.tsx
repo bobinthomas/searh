@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { mediaUrl } from "@/lib/images";
@@ -93,6 +94,13 @@ export default async function WorkSlugPage({
       />
       <main className="min-h-screen bg-[var(--color-paper)] px-6 py-24">
         <article className="mx-auto max-w-4xl">
+          <Link
+            href="/work"
+            className="mb-8 inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.2em] text-[var(--color-muted-ink)] transition-colors hover:text-[var(--color-ink)]"
+          >
+            ← Work
+          </Link>
+
           <Reveal y={30} scale={0.97}>
             <header className="mb-12">
               <h1 className="font-[family-name:var(--font-display)] text-4xl font-medium tracking-tight text-[var(--color-ink)] md:text-5xl">
@@ -107,7 +115,7 @@ export default async function WorkSlugPage({
                 {project.tags?.map((tag: string) => (
                   <span
                     key={tag}
-                    className="rounded-full bg-[var(--color-void)] px-3 py-1 text-xs text-[var(--color-paper)]"
+                    className="rounded-full bg-[var(--color-ink)] px-3 py-1 text-xs text-[var(--color-paper)]"
                   >
                     {tag}
                   </span>

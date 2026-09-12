@@ -58,7 +58,7 @@ export function BlogList({ posts }: { posts: Post[] }) {
           {post.published_at && (
             <time
               dateTime={post.published_at}
-              className="mt-2 block text-sm text-[var(--color-muted-ink)]"
+              className="mt-2 block font-mono text-[11px] uppercase tracking-[0.2em] text-[var(--color-muted-ink)]"
             >
               {new Date(post.published_at).toLocaleDateString("en-US", {
                 year: "numeric",
