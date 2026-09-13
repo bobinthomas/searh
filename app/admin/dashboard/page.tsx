@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ProjectList } from "@/components/admin/ProjectList";
 
 export default async function AdminDashboard() {
   const supabase = createAdminClient();
@@ -13,8 +14,8 @@ export default async function AdminDashboard() {
       .order("updated_at", { ascending: false }),
     supabase
       .from("projects")
-      .select("id, title, slug, status, updated_at, published_at")
-      .order("updated_at", { ascending: false }),
+      .select("id, title, slug, status, updated_at, published_at, sort_order")
+      .order("sort_order", { ascending: true }),
   ]);
 
   return (
@@ -78,41 +79,11 @@ export default async function AdminDashboard() {
             <Link href="/admin/dashboard/projects/new">New project</Link>
           </Button>
         </div>
+        <p className="mb-3 text-xs text-[var(--color-muted-ink)]">
+          Drag to reorder — this is the order projects appear on the homepage and /work.
+        </p>
 
-        {projects && projects.length > 0 ? (
-          <div className="space-y-2">
-            {projects.map((project) => (
-              <Link
-                key={project.id}
-                href={`/admin/dashboard/projects/${project.id}`}
-                className="flex items-center justify-between rounded-md border border-[var(--color-void-line)] bg-[var(--color-void-2)] px-4 py-3 transition-colors hover:border-[var(--color-muted-ink)]"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="text-sm font-medium">
-                    {project.title || "Untitled"}
-                  </span>
-                  <Badge
-                    variant={project.status === "published" ? "default" : "secondary"}
-                    className={
-                      project.status === "published"
-                        ? "bg-[var(--color-lime)] text-[var(--color-void)]"
-                        : "border-[var(--color-void-line)] bg-transparent text-[var(--color-muted-ink)]"
-                    }
-                  >
-                    {project.status}
-                  </Badge>
-                </div>
-                <span className="text-xs text-[var(--color-muted-ink)]">
-                  {new Date(project.updated_at).toLocaleDateString()}
-                </span>
-              </Link>
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm text-[var(--color-muted-ink)]">
-            No projects yet.
-          </p>
-        )}
+        <ProjectList initialProjects={projects ?? []} />
       </div>
     </div>
   );

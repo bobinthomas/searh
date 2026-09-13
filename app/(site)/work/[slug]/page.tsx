@@ -169,6 +169,11 @@ export default async function WorkSlugPage({
                         className="w-full rounded object-cover"
                       />
                     )}
+                    {img.alt && (
+                      <p className="mt-3 text-sm text-[var(--color-muted-ink)]">
+                        {img.alt}
+                      </p>
+                    )}
                   </Reveal>
                 ),
               )}
