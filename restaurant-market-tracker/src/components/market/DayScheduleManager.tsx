@@ -247,6 +247,7 @@ export function DayScheduleManager() {
               <Label>Default Quantity to Buy</Label>
               <Input
                 type="number"
+                        inputMode="decimal"
                 min="0.1"
                 step="0.1"
                 value={newItem.default_quantity}
@@ -338,6 +339,7 @@ function GroupedDayItems({
                     </Button>
                     <Input
                       type="number"
+                        inputMode="decimal"
                       min="0.5"
                       step="0.5"
                       defaultValue={item.default_quantity}

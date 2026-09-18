@@ -228,6 +228,7 @@ function ReportForm({
               <Input
                 id="ran-out-qty"
                 type="number"
+                        inputMode="decimal"
                 min="0.1"
                 step="0.1"
                 value={qty}
@@ -267,6 +268,7 @@ function ReportForm({
             <Input
               id="extra-qty"
               type="number"
+                        inputMode="decimal"
               min="0.1"
               step="0.1"
               value={qty}

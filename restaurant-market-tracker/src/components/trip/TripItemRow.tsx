@@ -208,6 +208,7 @@ export function TripItemRow({
             </Button>
             <Input
               type="number"
+                        inputMode="decimal"
               min="0.5"
               step="0.5"
               value={item.requested_qty ?? 1}
@@ -247,6 +248,7 @@ export function TripItemRow({
             </Button>
             <Input
               type="number"
+                        inputMode="decimal"
               min="0.5"
               step="0.5"
               value={approvedQty}
@@ -279,6 +281,7 @@ export function TripItemRow({
             </span>
             <Input
               type="number"
+                        inputMode="decimal"
               min="0"
               step="0.1"
               value={purchaseQty}
@@ -292,6 +295,7 @@ export function TripItemRow({
             </span>
             <Input
               type="number"
+                        inputMode="decimal"
               min="0"
               step="0.01"
               value={price}
@@ -326,6 +330,7 @@ export function TripItemRow({
             </span>
             <Input
               type="number"
+                        inputMode="decimal"
               min="0"
               step="0.1"
               value={receivedQty}

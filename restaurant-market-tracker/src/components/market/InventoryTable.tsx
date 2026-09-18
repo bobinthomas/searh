@@ -19,7 +19,7 @@ import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { CategoryIcon } from "@/components/ui/category-icon";
 import { AddItemDialog } from "./AddItemDialog";
 import { postJson, patchJson, deleteJson } from "@/lib/api-client";
-import type { InventoryItem } from "@/lib/types";
+import { CATEGORY_ORDER, type InventoryItem } from "@/lib/types";
 
 /**
  * `canEdit` is false for kitchen staff: they see the same list but only as a
@@ -30,6 +30,7 @@ export function InventoryTable({ canEdit }: { canEdit: boolean }) {
   const router = useRouter();
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<InventoryItem>>({});
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -111,11 +112,35 @@ export function InventoryTable({ canEdit }: { canEdit: boolean }) {
     router.refresh();
   };
 
-  const filtered = items.filter(
+  const searched = items.filter(
     (item) =>
       item.name.toLowerCase().includes(search.toLowerCase()) ||
       item.category.toLowerCase().includes(search.toLowerCase()),
   );
+  const filtered = categoryFilter
+    ? searched.filter((item) => item.category === categoryFilter)
+    : searched;
+
+  /** Categories present, in display order, with their item counts. */
+  const categories = CATEGORY_ORDER.filter((c) =>
+    searched.some((item) => item.category === c),
+  )
+    .concat(
+      // any category not in the standard order (e.g. legacy names)
+      [...new Set(searched.map((item) => item.category))].filter(
+        (c) => !CATEGORY_ORDER.includes(c),
+      ),
+    )
+    .map((c) => ({
+      name: c,
+      count: searched.filter((item) => item.category === c).length,
+    }));
+
+  /** Groups for the mobile card list: category -> items, display order. */
+  const grouped = categories.map((c) => ({
+    ...c,
+    items: filtered.filter((item) => item.category === c.name),
+  }));
 
   return (
     <div className="space-y-4">
@@ -137,8 +162,39 @@ export function InventoryTable({ canEdit }: { canEdit: boolean }) {
         )}
       </div>
 
-      {/* Cards on small screens, close to the table on wider ones */}
-      <div className="space-y-2 sm:hidden">
+      {/* Category chips: tap to focus one category, tap again for all */}
+      {categories.length > 1 && (
+        <div className="scrollbar-none -mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+          {categories.map((c) => {
+            const active = categoryFilter === c.name;
+            return (
+              <button
+                key={c.name}
+                type="button"
+                onClick={() => setCategoryFilter(active ? null : c.name)}
+                className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                  active
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "bg-card text-card-foreground hover:bg-muted"
+                }`}
+              >
+                <CategoryIcon category={c.name} className="h-3.5 w-3.5" />
+                {c.name}
+                <span
+                  className={`rounded-full px-1.5 text-[10px] ${
+                    active ? "bg-primary-foreground/20" : "bg-muted"
+                  }`}
+                >
+                  {c.count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Cards on small screens, grouped by category */}
+      <div className="space-y-4 sm:hidden">
         {filtered.length === 0 ? (
           <p className="py-8 text-center text-sm text-muted-foreground">
             {items.length === 0
@@ -146,7 +202,17 @@ export function InventoryTable({ canEdit }: { canEdit: boolean }) {
               : "Nothing matches your search."}
           </p>
         ) : (
-          filtered.map((item) => (
+          grouped.map((group) => (
+            <section key={group.name}>
+              <h3 className="mb-2 flex items-center gap-1.5 px-1 text-sm font-semibold text-muted-foreground">
+                <CategoryIcon category={group.name} className="h-4 w-4" />
+                {group.name}
+                <span className="rounded-full bg-muted px-2 text-[11px] font-normal">
+                  {group.items.length}
+                </span>
+              </h3>
+              <div className="space-y-2">
+                {group.items.map((item) => (
             <div key={item.id} className="rounded-xl border bg-card p-3">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
@@ -214,6 +280,9 @@ export function InventoryTable({ canEdit }: { canEdit: boolean }) {
                 )}
               </div>
             </div>
+                ))}
+              </div>
+            </section>
           ))
         )}
       </div>
@@ -243,7 +312,14 @@ export function InventoryTable({ canEdit }: { canEdit: boolean }) {
                 </TableCell>
               </TableRow>
             ) : (
-              filtered.map((item) => (
+              filtered
+                .slice()
+                .sort(
+                  (a, b) =>
+                    categories.findIndex((c) => c.name === a.category) -
+                    categories.findIndex((c) => c.name === b.category),
+                )
+                .map((item) => (
                 <TableRow key={item.id}>
                   <TableCell className="font-medium">
                     {editingId === item.id ? (
@@ -289,6 +365,7 @@ export function InventoryTable({ canEdit }: { canEdit: boolean }) {
                       {editingId === item.id ? (
                         <Input
                           type="number"
+                        inputMode="decimal"
                           value={editForm.current_quantity ?? 0}
                           onChange={(e) =>
                             setEditForm({
@@ -319,6 +396,7 @@ export function InventoryTable({ canEdit }: { canEdit: boolean }) {
                     {editingId === item.id ? (
                       <Input
                         type="number"
+                        inputMode="decimal"
                         value={editForm.min_quantity ?? 0}
                         onChange={(e) =>
                           setEditForm({

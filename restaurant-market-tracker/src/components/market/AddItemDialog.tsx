@@ -123,6 +123,7 @@ export function AddItemDialog({ open, onOpenChange, onCreated }: AddItemDialogPr
               <Input
                 id="qty"
                 type="number"
+                        inputMode="decimal"
                 min="0"
                 step="0.1"
                 value={currentQuantity}
@@ -134,6 +135,7 @@ export function AddItemDialog({ open, onOpenChange, onCreated }: AddItemDialogPr
               <Input
                 id="min"
                 type="number"
+                        inputMode="decimal"
                 min="0"
                 step="0.1"
                 value={minQuantity}

@@ -68,8 +68,8 @@ export function AppShell({
 
   return (
     <div className="min-h-dvh bg-background">
-      <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur">
-        <div className="mx-auto flex h-14 w-full max-w-3xl items-center justify-between px-4">
+      <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur lg:pl-56">
+        <div className="mx-auto flex h-14 w-full max-w-3xl items-center justify-between px-4 lg:max-w-5xl">
           <Link href="/" className="text-sm font-semibold tracking-tight">
             {company_name}
           </Link>
@@ -85,12 +85,12 @@ export function AppShell({
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-3xl px-4 py-5 pb-28">
+      <main className="mx-auto w-full max-w-3xl px-4 py-5 pb-28 lg:max-w-5xl lg:pb-10 lg:pl-60">
         {children}
       </main>
 
       <nav
-        className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 backdrop-blur"
+        className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 backdrop-blur lg:hidden"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
         <ul className="mx-auto flex w-full max-w-3xl">
@@ -119,6 +119,53 @@ export function AppShell({
             );
           })}
         </ul>
+      </nav>
+
+      {/* Tablet/desktop: sidebar nav instead of the bottom bar */}
+      <nav className="fixed inset-y-0 left-0 z-40 hidden w-56 flex-col border-r bg-background lg:flex">
+        <div className="border-b px-5 py-4">
+          <p className="truncate text-sm font-semibold tracking-tight">
+            {company_name}
+          </p>
+          <p className="mt-0.5 truncate text-xs text-muted-foreground">
+            {person.name} · {ROLE_LABELS[person.role]}
+          </p>
+        </div>
+        <ul className="flex-1 space-y-1 p-3">
+          {tabs.map((tab) => {
+            const active = isActive(pathname, tab.href);
+            const Icon = tab.icon;
+            return (
+              <li key={tab.href}>
+                <Link
+                  href={tab.href}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                    active
+                      ? "bg-muted text-foreground"
+                      : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+                  )}
+                >
+                  <Icon
+                    className={cn("h-5 w-5", active && "text-primary")}
+                    strokeWidth={active ? 2.4 : 1.9}
+                  />
+                  {tab.label}
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+        <div className="border-t p-3">
+          <Link
+            href="/account"
+            className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+          >
+            <Settings className="h-5 w-5" />
+            Account
+          </Link>
+        </div>
       </nav>
     </div>
   );

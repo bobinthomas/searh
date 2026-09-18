@@ -201,6 +201,7 @@ export function SettingsScreen() {
           <Input
             id="banner_days"
             type="number"
+                        inputMode="decimal"
             min="0"
             max="90"
             value={form.low_stock_banner_days}
@@ -234,6 +235,7 @@ export function SettingsScreen() {
           <Input
             id="auto_under"
             type="number"
+                        inputMode="decimal"
             min="0"
             step="0.01"
             value={form.auto_approve_under}
