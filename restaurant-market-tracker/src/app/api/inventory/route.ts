@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
   try {
     const db = await getDb();
     const body = await request.json();
-    const { name, category, unit, current_quantity, min_quantity, kitchen_tracked } = body;
+    const { name, category, unit, current_quantity, min_quantity, kitchen_tracked, store } = body;
 
     if (!name || !unit) {
       return NextResponse.json(
@@ -42,6 +42,7 @@ export async function POST(request: NextRequest) {
       current_quantity: current_quantity ?? 0,
       min_quantity: min_quantity ?? 0,
       kitchen_tracked: kitchen_tracked === 0 ? 0 : 1,
+      store: store?.trim() || null,
     });
 
     return NextResponse.json({ id, success: true }, { status: 201 });

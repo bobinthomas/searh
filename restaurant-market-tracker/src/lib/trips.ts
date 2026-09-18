@@ -67,6 +67,7 @@ export async function getTripItems(
   return d1All<TripItem>(
     db,
     `SELECT ti.*, ii.current_quantity, ii.min_quantity, ii.category,
+            COALESCE(ti.store, ii.store) AS store,
             p.name AS requested_by_name
      FROM trip_items ti
      LEFT JOIN inventory_items ii ON ii.id = ti.inventory_item_id
@@ -175,9 +176,9 @@ export async function materializeAutoItems(
   await d1Run(
     db,
     `INSERT OR IGNORE INTO trip_items
-       (id, trip_id, inventory_item_id, name, unit, source, requested_qty)
+       (id, trip_id, inventory_item_id, name, unit, source, requested_qty, store)
      SELECT lower(hex(randomblob(16))), ?, ii.id, ii.name, ii.unit,
-            'auto_low_stock', MAX(ii.min_quantity, 1)
+            'auto_low_stock', MAX(ii.min_quantity, 1), ii.store
      FROM inventory_items ii
      WHERE ii.min_quantity > 0 AND ii.current_quantity <= ii.min_quantity
        AND ii.kitchen_tracked = 1`,
@@ -283,14 +284,15 @@ export async function insertTripItem(
     requestedQty: number;
     notes?: string;
     requestedBy: string | null;
+    store?: string | null;
   },
 ): Promise<string> {
   const id = newId();
   await d1Run(
     db,
     `INSERT INTO trip_items
-       (id, trip_id, inventory_item_id, name, unit, source, requested_qty, notes, requested_by)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       (id, trip_id, inventory_item_id, name, unit, source, requested_qty, notes, requested_by, store)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     id,
     input.tripId,
     input.inventoryItemId,
@@ -300,6 +302,7 @@ export async function insertTripItem(
     input.requestedQty,
     input.notes ?? "",
     input.requestedBy,
+    input.store ?? null,
   );
   return id;
 }
@@ -416,10 +419,13 @@ export async function applyTransition(
 
   // Approval settings: when the admin turns approval off (or sets an
   // auto-approve ceiling), submit_for_approval short-circuits to approved.
+  // The admin's own submissions always skip the pending step — self-approval
+  // adds no control, so it should not cost a click.
   if (action === "submit_for_approval") {
     const settings = await getSettings(db);
     const estimate = await tripEstimateTotal(db, tripId);
     const skipApproval =
+      person.role === "admin" ||
       settings.require_approval === "0" ||
       (Number(settings.auto_approve_under) > 0 &&
         estimate < Number(settings.auto_approve_under));

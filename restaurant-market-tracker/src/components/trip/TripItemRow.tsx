@@ -129,6 +129,7 @@ export function TripItemRow({
             {item.current_quantity != null && (
               <> · {item.current_quantity} in stock</>
             )}
+            {item.store && <> · {item.store}</>}
             {item.requested_by_name && <> · {item.requested_by_name}</>}
           </p>
 

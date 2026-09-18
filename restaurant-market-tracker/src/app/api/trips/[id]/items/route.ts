@@ -33,13 +33,14 @@ export async function POST(
 
   const { id: tripId } = await params;
   const body = await request.json();
-  const { kind, inventory_item_id, name, unit, requested_qty, notes } = body as {
+  const { kind, inventory_item_id, name, unit, requested_qty, notes, store } = body as {
     kind?: "ran_out" | "extra" | "store";
     inventory_item_id?: string;
     name?: string;
     unit?: string;
     requested_qty?: number;
     notes?: string;
+    store?: string;
   };
 
   const db = await getDb();
@@ -61,6 +62,7 @@ export async function POST(
   let source: TripItemSource;
   let resolvedName = name?.trim() ?? "";
   let resolvedUnit = unit?.trim() ?? "";
+  let resolvedStore: string | null = store?.trim() || null;
 
   if (inventory_item_id) {
     const item = await getInventoryItem(db, inventory_item_id);
@@ -70,6 +72,8 @@ export async function POST(
     source = isStoreAction ? "store_added" : "kitchen_ran_out";
     resolvedName = item.name;
     resolvedUnit = item.unit;
+    // Default the store from the item's usual shop, unless overridden.
+    if (!store && "store" in item) resolvedStore = item.store ?? null;
 
     // Already on the list? Raise the requested quantity instead of duplicating.
     const existing = await findTripItem(db, tripId, inventory_item_id);
@@ -106,6 +110,7 @@ export async function POST(
     requestedQty: qty,
     notes: notes ?? "",
     requestedBy: person.id,
+    store: resolvedStore,
   });
 
   await logTripEvent(

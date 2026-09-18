@@ -34,6 +34,7 @@ export function AddItemDialog({ open, onOpenChange, onCreated }: AddItemDialogPr
   const [currentQuantity, setCurrentQuantity] = useState(0);
   const [minQuantity, setMinQuantity] = useState(0);
   const [kitchenTracked, setKitchenTracked] = useState(true);
+  const [store, setStore] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -52,9 +53,11 @@ export function AddItemDialog({ open, onOpenChange, onCreated }: AddItemDialogPr
           current_quantity: currentQuantity,
           min_quantity: minQuantity,
           kitchen_tracked: kitchenTracked ? 1 : 0,
+          store: store.trim() || null,
         }),
       });
       setName("");
+      setStore("");
       setCategory("Produce");
       setUnit("");
       setCurrentQuantity(0);
@@ -142,6 +145,15 @@ export function AddItemDialog({ open, onOpenChange, onCreated }: AddItemDialogPr
                 onChange={(e) => setMinQuantity(Number(e.target.value))}
               />
             </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="store">Store (optional)</Label>
+            <Input
+              id="store"
+              placeholder="e.g. COSTCO, ALDI, VEGE"
+              value={store}
+              onChange={(e) => setStore(e.target.value)}
+            />
           </div>
           <div className="flex items-center space-x-2">
             <Checkbox

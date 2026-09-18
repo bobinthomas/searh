@@ -2,7 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, Plus, Truck } from "lucide-react";
+import {
+  ChevronDown,
+  Plus,
+  Store as StoreIcon,
+  Truck,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -81,6 +86,7 @@ export function TripScreen({
   const money = useMoney();
   const settings = useSettings();
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
+  const [groupByStore, setGroupByStore] = useState(false);
 
   const actions = availableActions(person.role, trip.status);
   const primary = actions.find((a) => TRANSITIONS[a].primary);
@@ -240,6 +246,8 @@ export function TripScreen({
               onChanged={refresh}
               filter={categoryFilter}
               onFilterChange={setCategoryFilter}
+              groupByStore={groupByStore}
+              onGroupByStoreChange={setGroupByStore}
             />
           )}
 
@@ -348,6 +356,9 @@ export function TripScreen({
  * cards. Each chip shows how many lines it holds; "All" restores the full
  * list. With no filter, items are still rendered as collapsible per-category
  * sections so the page starts short. (CATEGORY_ORDER lives in lib/types.)
+ *
+ * When `groupByStore` is set, the same chips/sections group by shop instead
+ * (COSTCO, ALDI, VEGE...) so the Wednesday run can be walked store by store.
  */
 function CategoryGroupedItems({
   items,
@@ -356,6 +367,8 @@ function CategoryGroupedItems({
   onChanged,
   filter,
   onFilterChange,
+  groupByStore,
+  onGroupByStoreChange,
 }: {
   items: TripItem[];
   person: SafePerson;
@@ -363,10 +376,14 @@ function CategoryGroupedItems({
   onChanged: () => void;
   filter: string | null;
   onFilterChange: (next: string | null) => void;
+  groupByStore: boolean;
+  onGroupByStoreChange: (next: boolean) => void;
 }) {
   const groups = new Map<string, TripItem[]>();
   for (const item of items) {
-    const key = item.category || "Misc";
+    const key = groupByStore
+      ? item.store || "No store set"
+      : item.category || "Misc";
     const list = groups.get(key) ?? [];
     list.push(item);
     groups.set(key, list);
@@ -386,6 +403,8 @@ function CategoryGroupedItems({
           sortedKeys={sortedKeys}
           filter={filter}
           onFilterChange={onFilterChange}
+          groupByStore={groupByStore}
+          onGroupByStoreChange={onGroupByStoreChange}
         />
         {groups.get(filter)!.map((item) => (
           <TripItemRow
@@ -407,11 +426,17 @@ function CategoryGroupedItems({
         sortedKeys={sortedKeys}
         filter={filter}
         onFilterChange={onFilterChange}
+        groupByStore={groupByStore}
+        onGroupByStoreChange={onGroupByStoreChange}
       />
       {sortedKeys.map((key, i) => (
         <details key={key} open={i === 0} className="group/cat">
           <summary className="flex cursor-pointer list-none items-center gap-2 rounded-lg border bg-card px-3 py-3 transition-colors hover:bg-muted/70">
-            <CategoryIcon category={key} className="h-4 w-4 text-muted-foreground" />
+            {groupByStore ? (
+              <StoreIcon className="h-4 w-4 text-muted-foreground" />
+            ) : (
+              <CategoryIcon category={key} className="h-4 w-4 text-muted-foreground" />
+            )}
             <span className="text-sm font-semibold tracking-tight">{key}</span>
             <span className="ml-auto flex items-center gap-2">
               <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
@@ -442,14 +467,32 @@ function CategoryChips({
   sortedKeys,
   filter,
   onFilterChange,
+  groupByStore,
+  onGroupByStoreChange,
 }: {
   groups: Map<string, TripItem[]>;
   sortedKeys: string[];
   filter: string | null;
   onFilterChange: (next: string | null) => void;
+  groupByStore: boolean;
+  onGroupByStoreChange: (next: boolean) => void;
 }) {
   return (
     <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <button
+        type="button"
+        onClick={() => onGroupByStoreChange(!groupByStore)}
+        className={cn(
+          "flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-2 text-sm font-medium",
+          groupByStore
+            ? "border-primary bg-primary text-primary-foreground"
+            : "bg-card text-muted-foreground",
+        )}
+      >
+        <StoreIcon className="h-3.5 w-3.5" />
+        By store
+      </button>
+      <span className="mx-0.5 w-px shrink-0 self-stretch bg-border" aria-hidden />
       <button
         type="button"
         onClick={() => onFilterChange(null)}
@@ -477,13 +520,15 @@ function CategoryChips({
               : "bg-card text-muted-foreground",
           )}
         >
-          <CategoryIcon
-            category={key}
-            className={cn(
-              "h-3.5 w-3.5",
-              filter === key ? "text-current" : "text-muted-foreground",
-            )}
-          />
+          {!groupByStore && (
+            <CategoryIcon
+              category={key}
+              className={cn(
+                "h-3.5 w-3.5",
+                filter === key ? "text-current" : "text-muted-foreground",
+              )}
+            />
+          )}
           {key}
           <span className="ml-1 opacity-70">{groups.get(key)!.length}</span>
         </button>

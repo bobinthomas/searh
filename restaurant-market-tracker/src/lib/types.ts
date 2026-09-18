@@ -10,6 +10,8 @@ export interface InventoryItem {
   min_quantity: number;
   /** Store-managed items (cleaning, packaging...) never bother the kitchen. */
   kitchen_tracked: 0 | 1;
+  /** Which shop/route this is bought from (COSTCO, ALDI, VEGE...). */
+  store: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -214,6 +216,8 @@ export interface TripItem {
   current_quantity?: number | null;
   min_quantity?: number | null;
   category?: string | null;
+  /** Which shop/route to buy this from (COSTCO, ALDI, VEGE...). */
+  store?: string | null;
 }
 
 /** The quantity that actually matters at the trip's current stage. */

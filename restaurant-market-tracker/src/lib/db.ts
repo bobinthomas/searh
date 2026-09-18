@@ -106,15 +106,16 @@ export async function createInventoryItem(
   const id = newId();
   await d1Run(
     db,
-    `INSERT INTO inventory_items (id, name, category, unit, current_quantity, min_quantity, kitchen_tracked)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO inventory_items (id, name, category, unit, current_quantity, min_quantity, kitchen_tracked, store)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     id,
     item.name,
     item.category,
     item.unit,
     item.current_quantity,
     item.min_quantity,
-    item.kitchen_tracked ?? 1
+    item.kitchen_tracked ?? 1,
+    item.store ?? null
   );
   return id;
 }

@@ -96,6 +96,7 @@ export function InventoryTable({ canEdit }: { canEdit: boolean }) {
       current_quantity: item.current_quantity,
       min_quantity: item.min_quantity,
       kitchen_tracked: item.kitchen_tracked,
+      store: item.store ?? "",
     });
   };
 
@@ -223,6 +224,7 @@ export function InventoryTable({ canEdit }: { canEdit: boolean }) {
                   <p className="text-xs text-muted-foreground">
                     {item.category} · reorder at {item.min_quantity} {item.unit}
                     {item.kitchen_tracked === 0 && " · store"}
+                    {item.store && ` · ${item.store}`}
                   </p>
                 </div>
                 {item.min_quantity > 0 &&
@@ -414,22 +416,33 @@ export function InventoryTable({ canEdit }: { canEdit: boolean }) {
                   </TableCell>
                   <TableCell>
                     {editingId === item.id ? (
-                      <label className="flex items-center gap-1.5 text-xs">
-                        <input
-                          type="checkbox"
-                          checked={editForm.kitchen_tracked !== 0}
+                      <div className="flex flex-col gap-1">
+                        <label className="flex items-center gap-1.5 text-xs">
+                          <input
+                            type="checkbox"
+                            checked={editForm.kitchen_tracked !== 0}
+                            onChange={(e) =>
+                              setEditForm({
+                                ...editForm,
+                                kitchen_tracked: e.target.checked ? 1 : 0,
+                              })
+                            }
+                          />
+                          kitchen
+                        </label>
+                        <Input
+                          value={editForm.store ?? ""}
                           onChange={(e) =>
-                            setEditForm({
-                              ...editForm,
-                              kitchen_tracked: e.target.checked ? 1 : 0,
-                            })
+                            setEditForm({ ...editForm, store: e.target.value })
                           }
+                          placeholder="Store"
+                          className="h-8 w-24 text-xs"
                         />
-                        kitchen
-                      </label>
+                      </div>
                     ) : (
                       <span className="text-xs text-muted-foreground">
                         {item.kitchen_tracked === 0 ? "store" : "kitchen"}
+                        {item.store && ` · ${item.store}`}
                       </span>
                     )}
                     {item.min_quantity > 0 &&

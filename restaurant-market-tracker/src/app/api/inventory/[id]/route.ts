@@ -37,7 +37,22 @@ export async function PATCH(
   const db = await getDb();
   const body = await request.json();
 
-  await updateInventoryItem(db, id, body);
+  // Only these fields are editable; never pass raw body straight to SQL.
+  const allowed = [
+    "name",
+    "category",
+    "unit",
+    "current_quantity",
+    "min_quantity",
+    "kitchen_tracked",
+    "store",
+  ] as const;
+  const patch: Record<string, unknown> = {};
+  for (const key of allowed) {
+    if (key in body) patch[key] = body[key];
+  }
+
+  await updateInventoryItem(db, id, patch);
   return NextResponse.json({ success: true });
 }
 
