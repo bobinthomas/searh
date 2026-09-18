@@ -134,7 +134,7 @@ export function PeopleManager({ people }: { people: Person[] }) {
                 <Button
                   size="icon"
                   variant="ghost"
-                  className="h-8 w-8"
+                  className="h-9 w-9"
                   title="Set a new PIN"
                   onClick={() => {
                     setPinFor(person);
@@ -147,7 +147,7 @@ export function PeopleManager({ people }: { people: Person[] }) {
                 <Button
                   size="icon"
                   variant="ghost"
-                  className="h-8 w-8"
+                  className="h-9 w-9"
                   title={person.active ? "Deactivate" : "Reactivate"}
                   onClick={() => toggleActive(person)}
                 >

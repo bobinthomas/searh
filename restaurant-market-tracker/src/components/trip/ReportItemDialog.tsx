@@ -153,7 +153,7 @@ function ReportForm({
               type="button"
               onClick={() => setCategory(null)}
               className={cn(
-                "shrink-0 rounded-full border px-3 py-1 text-xs font-medium",
+                "shrink-0 rounded-full border px-3.5 py-2 text-sm font-medium",
                 category === null
                   ? "border-primary bg-primary text-primary-foreground"
                   : "bg-card text-muted-foreground",
@@ -167,7 +167,7 @@ function ReportForm({
                 type="button"
                 onClick={() => setCategory(category === cat ? null : cat)}
                 className={cn(
-                  "flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium",
+                  "flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-2 text-sm font-medium",
                   category === cat
                     ? "border-primary bg-primary text-primary-foreground"
                     : "bg-card text-muted-foreground",
@@ -198,7 +198,7 @@ function ReportForm({
                 type="button"
                 onClick={() => setChoice(item)}
                 className={cn(
-                  "flex w-full items-center justify-between rounded-lg border px-3 py-2.5 text-left text-sm transition-colors",
+                  "flex w-full items-center justify-between rounded-lg border px-3 py-3 text-left text-sm transition-colors",
                   choice?.id === item.id
                     ? "border-primary bg-primary/5"
                     : "hover:bg-muted",

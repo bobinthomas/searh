@@ -308,7 +308,7 @@ function GroupedDayItems({
     <div className="space-y-3">
       {sortedKeys.map((key, i) => (
         <details key={key} open={i === 0} className="group/cat">
-          <summary className="flex cursor-pointer list-none items-center gap-2 rounded-lg border bg-card px-3 py-2.5 transition-colors hover:bg-muted/70">
+          <summary className="flex cursor-pointer list-none items-center gap-2 rounded-lg border bg-card px-3 py-3 transition-colors hover:bg-muted/70">
             <CategoryIcon category={key} className="h-4 w-4 text-muted-foreground" />
             <span className="text-sm font-semibold tracking-tight">{key}</span>
             <span className="ml-auto flex items-center gap-2">
@@ -330,7 +330,7 @@ function GroupedDayItems({
                     <Button
                       variant="outline"
                       size="icon"
-                      className="h-6 w-6"
+                      className="h-9 w-9"
                       onClick={() =>
                         onQuantity(item.id, Math.max(0.5, item.default_quantity - 1))
                       }
@@ -344,7 +344,7 @@ function GroupedDayItems({
                       step="0.5"
                       defaultValue={item.default_quantity}
                       key={`${item.id}-${item.default_quantity}`}
-                      className="h-6 w-14 px-1 text-center text-xs"
+                      className="h-9 w-14 px-1 text-center text-sm"
                       onBlur={(e) => {
                         const next = Number(e.target.value);
                         if (next !== item.default_quantity) {
@@ -355,7 +355,7 @@ function GroupedDayItems({
                     <Button
                       variant="outline"
                       size="icon"
-                      className="h-6 w-6"
+                      className="h-9 w-9"
                       onClick={() => onQuantity(item.id, item.default_quantity + 1)}
                     >
                       <Plus className="h-3 w-3" />
@@ -371,7 +371,7 @@ function GroupedDayItems({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-7 w-7 text-destructive"
+                  className="h-9 w-9 text-destructive"
                   onClick={() => onRemove(item.id)}
                 >
                   <Trash2 className="h-3.5 w-3.5" />

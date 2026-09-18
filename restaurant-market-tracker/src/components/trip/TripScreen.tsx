@@ -126,9 +126,9 @@ export function TripScreen({
   };
 
   return (
-    <div className="space-y-4">
-      {/* Status */}
-      <Card>
+    <div className="space-y-4 lg:grid lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-start lg:gap-4 lg:space-y-0">
+      {/* Status — sidebar column on tablet */}
+      <Card className="lg:sticky lg:top-20 lg:col-start-1 lg:row-start-1">
         <CardContent className="space-y-3 pt-5">
           <div className="flex items-center justify-between gap-3">
             <div>
@@ -208,7 +208,7 @@ export function TripScreen({
       </Card>
 
       {/* The list */}
-      <Card>
+      <Card className="lg:col-start-2 lg:row-start-1 lg:row-span-2">
         <CardContent className="space-y-3 pt-5">
           <div className="flex items-center justify-between">
             <div>
@@ -266,7 +266,7 @@ export function TripScreen({
 
       {/* Who did what */}
       {(trip.events?.length ?? 0) > 0 && (
-        <Card>
+        <Card className="lg:col-start-1 lg:row-start-2">
           <CardContent className="pt-5">
             <details>
               <summary className="flex cursor-pointer items-center gap-2 text-sm font-semibold">
@@ -410,7 +410,7 @@ function CategoryGroupedItems({
       />
       {sortedKeys.map((key, i) => (
         <details key={key} open={i === 0} className="group/cat">
-          <summary className="flex cursor-pointer list-none items-center gap-2 rounded-lg border bg-card px-3 py-2.5 transition-colors hover:bg-muted/70">
+          <summary className="flex cursor-pointer list-none items-center gap-2 rounded-lg border bg-card px-3 py-3 transition-colors hover:bg-muted/70">
             <CategoryIcon category={key} className="h-4 w-4 text-muted-foreground" />
             <span className="text-sm font-semibold tracking-tight">{key}</span>
             <span className="ml-auto flex items-center gap-2">
@@ -454,7 +454,7 @@ function CategoryChips({
         type="button"
         onClick={() => onFilterChange(null)}
         className={cn(
-          "shrink-0 rounded-full border px-3 py-1 text-xs font-medium",
+          "shrink-0 rounded-full border px-3.5 py-2 text-sm font-medium",
           filter === null
             ? "border-primary bg-primary text-primary-foreground"
             : "bg-card text-muted-foreground",
@@ -471,7 +471,7 @@ function CategoryChips({
           type="button"
           onClick={() => onFilterChange(filter === key ? null : key)}
           className={cn(
-            "flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium",
+            "flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-2 text-sm font-medium",
             filter === key
               ? "border-primary bg-primary text-primary-foreground"
               : "bg-card text-muted-foreground",

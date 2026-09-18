@@ -172,7 +172,7 @@ export function InventoryTable({ canEdit }: { canEdit: boolean }) {
                 key={c.name}
                 type="button"
                 onClick={() => setCategoryFilter(active ? null : c.name)}
-                className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-2 text-sm font-medium transition-colors ${
                   active
                     ? "border-primary bg-primary text-primary-foreground"
                     : "bg-card text-card-foreground hover:bg-muted"
@@ -237,7 +237,7 @@ export function InventoryTable({ canEdit }: { canEdit: boolean }) {
                     <Button
                       size="icon"
                       variant="outline"
-                      className="h-8 w-8"
+                      className="h-9 w-9"
                       onClick={() => adjustQuantity(item.id, -1)}
                     >
                       <Minus className="h-3.5 w-3.5" />
@@ -250,7 +250,7 @@ export function InventoryTable({ canEdit }: { canEdit: boolean }) {
                     <Button
                       size="icon"
                       variant="outline"
-                      className="h-8 w-8"
+                      className="h-9 w-9"
                       onClick={() => adjustQuantity(item.id, 1)}
                     >
                       <Plus className="h-3.5 w-3.5" />
@@ -263,7 +263,7 @@ export function InventoryTable({ canEdit }: { canEdit: boolean }) {
                     <Button
                       size="icon"
                       variant="ghost"
-                      className="h-8 w-8"
+                      className="h-9 w-9"
                       onClick={() => startEdit(item)}
                     >
                       <Pencil className="h-4 w-4" />
@@ -271,7 +271,7 @@ export function InventoryTable({ canEdit }: { canEdit: boolean }) {
                     <Button
                       size="icon"
                       variant="ghost"
-                      className="h-8 w-8 text-destructive"
+                      className="h-9 w-9 text-destructive"
                       onClick={() => removeItem(item.id)}
                     >
                       <Trash2 className="h-4 w-4" />
@@ -356,7 +356,7 @@ export function InventoryTable({ canEdit }: { canEdit: boolean }) {
                         <Button
                           variant="outline"
                           size="icon"
-                          className="h-7 w-7"
+                          className="h-9 w-9"
                           onClick={() => adjustQuantity(item.id, -1)}
                         >
                           <Minus className="h-3 w-3" />
@@ -373,7 +373,7 @@ export function InventoryTable({ canEdit }: { canEdit: boolean }) {
                               current_quantity: Number(e.target.value),
                             })
                           }
-                          className="h-8 w-20 text-center"
+                          className="h-9 w-20 text-center"
                         />
                       ) : (
                         <span className="w-16 text-center font-mono text-sm">
@@ -384,7 +384,7 @@ export function InventoryTable({ canEdit }: { canEdit: boolean }) {
                         <Button
                           variant="outline"
                           size="icon"
-                          className="h-7 w-7"
+                          className="h-9 w-9"
                           onClick={() => adjustQuantity(item.id, 1)}
                         >
                           <Plus className="h-3 w-3" />
@@ -404,7 +404,7 @@ export function InventoryTable({ canEdit }: { canEdit: boolean }) {
                             min_quantity: Number(e.target.value),
                           })
                         }
-                        className="h-8 w-20"
+                        className="h-9 w-20"
                       />
                     ) : (
                       <span className="text-sm text-muted-foreground">
@@ -465,7 +465,7 @@ export function InventoryTable({ canEdit }: { canEdit: boolean }) {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8"
+                              className="h-9 w-9"
                               onClick={() => startEdit(item)}
                             >
                               <Pencil className="h-3.5 w-3.5" />
@@ -473,7 +473,7 @@ export function InventoryTable({ canEdit }: { canEdit: boolean }) {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 text-destructive"
+                              className="h-9 w-9 text-destructive"
                               onClick={() => removeItem(item.id)}
                             >
                               <Trash2 className="h-3.5 w-3.5" />

@@ -160,7 +160,7 @@ export function TripItemRow({
             <Button
               size="icon"
               variant="ghost"
-              className="h-8 w-8"
+              className="h-9 w-9"
               disabled={busy}
               title="Put back on the list"
               onClick={() => patch({ status: "pending" }, "Put back on the list")}
@@ -173,7 +173,7 @@ export function TripItemRow({
             <Button
               size="icon"
               variant="ghost"
-              className="h-8 w-8 text-destructive"
+              className="h-9 w-9 text-destructive"
               disabled={busy}
               title={isStoreOrAdmin ? "Drop from the list" : "Remove my request"}
               onClick={() =>
@@ -200,7 +200,7 @@ export function TripItemRow({
             <Button
               size="icon"
               variant="outline"
-              className="h-7 w-7"
+              className="h-9 w-9"
               disabled={busy}
               onClick={() => stepRequested(-1)}
             >
@@ -216,12 +216,12 @@ export function TripItemRow({
               onChange={(e) =>
                 void patch({ requested_qty: Number(e.target.value) })
               }
-              className="h-8 w-16 text-center"
+              className="h-9 w-16 text-center"
             />
             <Button
               size="icon"
               variant="outline"
-              className="h-7 w-7"
+              className="h-9 w-9"
               disabled={busy}
               onClick={() => stepRequested(1)}
             >
@@ -240,7 +240,7 @@ export function TripItemRow({
             <Button
               size="icon"
               variant="outline"
-              className="h-7 w-7"
+              className="h-9 w-9"
               disabled={busy}
               onClick={() => stepApproved(-1)}
             >
@@ -256,12 +256,12 @@ export function TripItemRow({
               onChange={(e) =>
                 void patch({ approved_qty: Number(e.target.value) })
               }
-              className="h-8 w-16 text-center"
+              className="h-9 w-16 text-center"
             />
             <Button
               size="icon"
               variant="outline"
-              className="h-7 w-7"
+              className="h-9 w-9"
               disabled={busy}
               onClick={() => stepApproved(1)}
             >
@@ -286,7 +286,7 @@ export function TripItemRow({
               step="0.1"
               value={purchaseQty}
               onChange={(e) => setPurchaseQty(e.target.value)}
-              className="h-8 w-20"
+              className="h-9 w-20"
             />
           </div>
           <div className="space-y-1">
@@ -300,7 +300,7 @@ export function TripItemRow({
               step="0.01"
               value={price}
               onChange={(e) => setPrice(e.target.value)}
-              className="h-8 w-24"
+              className="h-9 w-24"
             />
           </div>
           <Button
@@ -335,7 +335,7 @@ export function TripItemRow({
               step="0.1"
               value={receivedQty}
               onChange={(e) => setReceivedQty(e.target.value)}
-              className="h-8 w-24"
+              className="h-9 w-24"
             />
           </div>
           <Button
