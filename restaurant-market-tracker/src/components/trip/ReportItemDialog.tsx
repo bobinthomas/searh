@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { postJson } from "@/lib/api-client";
 import { CategoryIcon } from "@/components/ui/category-icon";
+import { usePerson } from "@/components/shell/PersonContext";
 import type { InventoryItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -62,6 +63,7 @@ function ReportForm({
   onDone: () => void;
 }) {
   const router = useRouter();
+  const { role } = usePerson();
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<string | null>(null);
@@ -77,8 +79,15 @@ function ReportForm({
       .then((res) => (res.ok ? res.json() : []))
       .then((list: InventoryItem[]) => {
         // The kitchen reports food shortages; store-managed items (cleaning,
-        // packaging, office...) never belong in this picker.
-        if (active) setItems(list.filter((i) => i.kitchen_tracked !== 0));
+        // packaging, office...) never belong in its picker. The store manager
+        // and admin add those from the same dialog, so they see everything —
+        // otherwise they fall back to "Something else", which creates a
+        // duplicate item when the purchase is recorded.
+        if (active) {
+          setItems(
+            role === "kitchen" ? list.filter((i) => i.kitchen_tracked !== 0) : list,
+          );
+        }
       })
       .catch(() => {
         if (active) setItems([]);
@@ -86,7 +95,7 @@ function ReportForm({
     return () => {
       active = false;
     };
-  }, []);
+  }, [role]);
 
   // Low stock at the top — that is what the kitchen came here for.
   const categories = useMemo(

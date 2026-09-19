@@ -143,51 +143,41 @@ export async function wouldRemoveLastAdmin(
 const MAX_FAILED_LOGINS = 5;
 const LOCK_MINUTES = 5;
 
-/** Returns the ISO time the person is locked until, or null if they may try. */
-export async function loginLockedUntil(
+/**
+ * Claims one PIN attempt for a person before the PIN is checked, and returns
+ * whether it may proceed. The count is bumped in a single upsert, so parallel
+ * requests each get their own number: at most MAX_FAILED_LOGINS guesses get
+ * through per lock window no matter how many arrive at once. (Checking the
+ * lock first and recording failures afterwards let a burst of concurrent
+ * guesses all pass the check.) A successful sign-in clears the count.
+ */
+export async function claimLoginAttempt(
   db: D1Client,
   personId: string,
-): Promise<string | null> {
-  const row = await d1First<{ locked_until: string | null }>(
+): Promise<{ allowed: boolean }> {
+  const now = new Date().toISOString();
+  const lockUntil = new Date(Date.now() + LOCK_MINUTES * 60_000).toISOString();
+  // In DO UPDATE, bare column names are the row's values before this update.
+  const row = await d1First<{ failed: number; locked_until: string | null }>(
     db,
-    "SELECT locked_until FROM login_attempts WHERE person_id = ?",
+    `INSERT INTO login_attempts (person_id, failed, locked_until)
+     VALUES (?, 1, NULL)
+     ON CONFLICT(person_id) DO UPDATE SET
+       failed = CASE WHEN locked_until IS NOT NULL AND locked_until <= ?
+                     THEN 1 ELSE failed + 1 END,
+       locked_until = CASE
+         WHEN locked_until IS NOT NULL AND locked_until <= ? THEN NULL
+         WHEN locked_until IS NULL AND failed + 1 > ? THEN ?
+         ELSE locked_until END
+     RETURNING failed, locked_until`,
     personId,
+    now,
+    now,
+    MAX_FAILED_LOGINS,
+    lockUntil,
   );
-  if (!row?.locked_until) return null;
-  return row.locked_until > new Date().toISOString() ? row.locked_until : null;
-}
-
-export async function recordFailedLogin(
-  db: D1Client,
-  personId: string,
-): Promise<void> {
-  const row = await d1First<{ failed: number }>(
-    db,
-    "SELECT failed FROM login_attempts WHERE person_id = ?",
-    personId,
-  );
-  const failed = (row?.failed ?? 0) + 1;
-
-  if (failed >= MAX_FAILED_LOGINS) {
-    const until = new Date(Date.now() + LOCK_MINUTES * 60_000).toISOString();
-    await d1Run(
-      db,
-      `INSERT INTO login_attempts (person_id, failed, locked_until)
-       VALUES (?, 0, ?)
-       ON CONFLICT(person_id) DO UPDATE SET failed = 0, locked_until = excluded.locked_until`,
-      personId,
-      until,
-    );
-    return;
-  }
-
-  await d1Run(
-    db,
-    `INSERT INTO login_attempts (person_id, failed) VALUES (?, ?)
-     ON CONFLICT(person_id) DO UPDATE SET failed = excluded.failed`,
-    personId,
-    failed,
-  );
+  const locked = !!row?.locked_until && row.locked_until > now;
+  return { allowed: !!row && !locked && row.failed <= MAX_FAILED_LOGINS };
 }
 
 export async function clearLoginAttempts(

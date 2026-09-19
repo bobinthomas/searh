@@ -21,9 +21,14 @@ export interface D1Client {
   batch<T = unknown>(statements: D1PreparedStatement[]): Promise<T[]>;
 }
 
-interface D1PreparedStatement {
+export interface D1RunResult {
+  success: boolean;
+  meta?: { last_row_id?: string; changes?: number };
+}
+
+export interface D1PreparedStatement {
   bind(...args: unknown[]): D1PreparedStatement;
-  run(): Promise<{ success: boolean; meta?: { last_row_id?: string } }>;
+  run(): Promise<D1RunResult>;
   first<T = Record<string, unknown>>(): Promise<T | null>;
   all<T = Record<string, unknown>>(): Promise<{ results: T[] }>;
 }
@@ -74,9 +79,35 @@ export async function d1Run(
   db: D1Client,
   sql: string,
   ...params: unknown[]
-): Promise<{ success: boolean }> {
+): Promise<D1RunResult> {
   const stmt = db.prepare(sql).bind(...params);
   return stmt.run();
+}
+
+/** Rows touched by a write — 0 means a conditional UPDATE lost its race. */
+export function changes(result: D1RunResult | undefined): number {
+  return result?.meta?.changes ?? 0;
+}
+
+/** A bound statement for d1Batch. */
+export function d1Stmt(
+  db: D1Client,
+  sql: string,
+  ...params: unknown[]
+): D1PreparedStatement {
+  return db.prepare(sql).bind(...params);
+}
+
+/**
+ * Runs statements as one transaction: all of them apply or none do. D1
+ * serialises transactions, so guards evaluated inside the batch (e.g. "the
+ * trip is still purchasing") cannot interleave with another request's batch.
+ */
+export async function d1Batch(
+  db: D1Client,
+  statements: D1PreparedStatement[]
+): Promise<D1RunResult[]> {
+  return db.batch<D1RunResult>(statements);
 }
 
 // ─── Inventory Queries ──────────────────────────────────────
@@ -84,7 +115,7 @@ export async function d1Run(
 export async function getAllInventory(db: D1Client): Promise<InventoryItem[]> {
   return d1All<InventoryItem>(
     db,
-    "SELECT * FROM inventory_items ORDER BY category, name"
+    "SELECT * FROM inventory_items WHERE archived = 0 ORDER BY category, name"
   );
 }
 
@@ -144,16 +175,25 @@ export async function updateInventoryItem(
   return result.success;
 }
 
-export async function deleteInventoryItem(
+/**
+ * "Deleting" a stock item archives it: it leaves the stock list, pickers,
+ * market days and low-stock checks, but its purchase history stays (a real
+ * DELETE cascades into purchase_history and erases the spend).
+ */
+export async function archiveInventoryItem(
   db: D1Client,
   id: string
 ): Promise<boolean> {
-  const result = await d1Run(
-    db,
-    "DELETE FROM inventory_items WHERE id = ?",
-    id
-  );
-  return result.success;
+  const [archived] = await d1Batch(db, [
+    d1Stmt(
+      db,
+      `UPDATE inventory_items SET archived = 1, updated_at = datetime('now')
+       WHERE id = ? AND archived = 0`,
+      id
+    ),
+    d1Stmt(db, "DELETE FROM market_items WHERE inventory_item_id = ?", id),
+  ]);
+  return changes(archived) === 1;
 }
 
 export async function adjustInventoryQuantity(
@@ -357,16 +397,81 @@ export async function recordPurchase(
   return id;
 }
 
+/**
+ * Removes a ledger row. A row posted from a trip also added stock, so that
+ * stock comes back off (net of any short delivery already deducted) and the
+ * trip line is marked unposted. Returns what was removed, for the trip's
+ * audit trail, or null if the row did not exist.
+ */
 export async function deletePurchase(
   db: D1Client,
   id: string
-): Promise<boolean> {
-  const result = await d1Run(
+): Promise<{
+  tripId: string | null;
+  itemName: string;
+  quantity: number;
+  unit: string;
+} | null> {
+  const row = await d1First<{
+    inventory_item_id: string;
+    quantity: number;
+    trip_item_id: string | null;
+    trip_id: string | null;
+    line_status: string | null;
+    received_qty: number | null;
+    item_name: string;
+    unit: string;
+  }>(
     db,
-    "DELETE FROM purchase_history WHERE id = ?",
+    `SELECT p.inventory_item_id, p.quantity, p.trip_item_id,
+            ti.trip_id, ti.status AS line_status, ti.received_qty,
+            ii.name AS item_name, ii.unit
+     FROM purchase_history p
+     JOIN inventory_items ii ON ii.id = p.inventory_item_id
+     LEFT JOIN trip_items ti ON ti.id = p.trip_item_id
+     WHERE p.id = ?`,
     id
   );
-  return result.success;
+  if (!row) return null;
+
+  // Each statement is guarded on the ledger row still existing, so two
+  // concurrent deletes cannot take the stock off twice.
+  const stillThere = "EXISTS (SELECT 1 FROM purchase_history WHERE id = ?)";
+  const statements: D1PreparedStatement[] = [];
+  if (row.trip_item_id) {
+    const net =
+      row.line_status === "received" && row.received_qty != null
+        ? Math.min(row.received_qty, row.quantity)
+        : row.quantity;
+    statements.push(
+      d1Stmt(
+        db,
+        `UPDATE inventory_items
+         SET current_quantity = MAX(0, current_quantity - ?), updated_at = datetime('now')
+         WHERE id = ? AND ${stillThere}`,
+        net,
+        row.inventory_item_id,
+        id
+      ),
+      d1Stmt(
+        db,
+        `UPDATE trip_items SET posted = 0, updated_at = datetime('now')
+         WHERE id = ? AND ${stillThere}`,
+        row.trip_item_id,
+        id
+      )
+    );
+  }
+  statements.push(d1Stmt(db, "DELETE FROM purchase_history WHERE id = ?", id));
+
+  const results = await d1Batch(db, statements);
+  if (changes(results[results.length - 1]) !== 1) return null;
+  return {
+    tripId: row.trip_id,
+    itemName: row.item_name,
+    quantity: row.quantity,
+    unit: row.unit,
+  };
 }
 
 export async function getSpendSummary(
@@ -428,31 +533,43 @@ export async function getTodayChecklist(
 
 // ─── Stats Queries ──────────────────────────────────────────
 
-/** Weekly spend totals, oldest first, for the trend chart. Buckets use the
- * company timezone and configured week-start day. `weekStartDow` follows
- * SQLite's `weekday N` modifier: 0 = Sunday … 6 = Saturday, where N is the
- * week-start day itself. */
+const hoursModifier = (h: number) => `${h >= 0 ? "+" : ""}${h} hours`;
+
+/**
+ * SQL for the first day of the week containing a local datetime expression.
+ * SQLite's `weekday N` moves a date *forward* to the next day N (or keeps it),
+ * so step back six days first to land on the most recent week start.
+ */
+const weekStartOf = (expr: string) => `date(${expr}, '-6 days', ?)`;
+
+/** Weekly spend totals, oldest first, for the trend chart: the current week
+ * and the `weeks - 1` before it. Buckets use the company timezone and the
+ * configured week-start day (0 = Sunday … 6 = Saturday). */
 export async function getSpendTrend(
   db: D1Client,
   weeks: number,
   tzOffsetHours = 10, // Australia/Sydney (AEST) fallback
   weekStartDow = 1
 ): Promise<{ week_start: string; total: number }[]> {
+  const offset = hoursModifier(tzOffsetHours);
+  const weekday = `weekday ${weekStartDow}`;
   return d1All<{ week_start: string; total: number }>(
     db,
     `WITH local AS (
        SELECT datetime(purchased_at, ?) AS at, total_cost
        FROM purchase_history
      )
-     SELECT date(at, ?) as week_start,
-            SUM(total_cost) as total
+     SELECT ${weekStartOf("at")} AS week_start,
+            SUM(total_cost) AS total
      FROM local
-     WHERE at >= datetime('now', ?)
+     WHERE at >= date(${weekStartOf("datetime('now', ?)")}, ?)
      GROUP BY week_start
      ORDER BY week_start`,
-    `${tzOffsetHours >= 0 ? "+" : ""}${tzOffsetHours} hours`,
-    `weekday ${weekStartDow}`,
-    `-${weeks * 7} days`,
+    offset,
+    weekday,
+    offset,
+    weekday,
+    `-${(weeks - 1) * 7} days`,
   );
 }
 
@@ -475,13 +592,14 @@ export async function getSpendByCategory(
   );
 }
 
-/** This week vs last week, for the admin home delta card. Honours the
- * company timezone and week-start day. */
+/** This week (so far) vs last week, for the admin home delta card. Weeks are
+ * anchored on today in the company timezone, not on the latest purchase. */
 export async function getWeekOverWeekSpend(
   db: D1Client,
   tzOffsetHours = 10,
   weekStartDow = 1
 ): Promise<{ this_week: number; last_week: number }> {
+  const offset = hoursModifier(tzOffsetHours);
   const result = await d1First<{ this_week: number; last_week: number }>(
     db,
     `WITH local AS (
@@ -489,14 +607,15 @@ export async function getWeekOverWeekSpend(
        FROM purchase_history
      ),
      bounds AS (
-       SELECT date(at, ?) AS ws FROM local ORDER BY at DESC LIMIT 1
+       SELECT ${weekStartOf("datetime('now', ?)")} AS ws
      )
      SELECT
        COALESCE(SUM(CASE WHEN at >= (SELECT ws FROM bounds) THEN total_cost END), 0) as this_week,
        COALESCE(SUM(CASE WHEN at >= date((SELECT ws FROM bounds), '-7 days')
                           AND at < (SELECT ws FROM bounds) THEN total_cost END), 0) as last_week
      FROM local`,
-    `${tzOffsetHours >= 0 ? "+" : ""}${tzOffsetHours} hours`,
+    offset,
+    offset,
     `weekday ${weekStartDow}`,
   );
   return result ?? { this_week: 0, last_week: 0 };

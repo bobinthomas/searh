@@ -5,7 +5,7 @@ import { requirePerson, requireRole } from "@/lib/auth";
 import {
   getInventoryItem,
   updateInventoryItem,
-  deleteInventoryItem,
+  archiveInventoryItem,
 } from "@/lib/db";
 import { getDb } from "@/lib/d1-context";
 
@@ -51,6 +51,9 @@ export async function PATCH(
   for (const key of allowed) {
     if (key in body) patch[key] = body[key];
   }
+  if ("store" in patch) {
+    patch.store = String(patch.store ?? "").trim() || null;
+  }
 
   await updateInventoryItem(db, id, patch);
   return NextResponse.json({ success: true });
@@ -65,7 +68,10 @@ export async function DELETE(
 
   const { id } = await params;
   const db = await getDb();
-  await deleteInventoryItem(db, id);
+  // Archived, not deleted: a real DELETE cascades into purchase_history.
+  if (!(await archiveInventoryItem(db, id))) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
 
   return NextResponse.json({ success: true });
 }

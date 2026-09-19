@@ -132,89 +132,129 @@ export function TripScreen({
   };
 
   return (
-    <div className="space-y-4 lg:grid lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-start lg:gap-4 lg:space-y-0">
-      {/* Status — sidebar column on tablet */}
-      <Card className="lg:sticky lg:top-20 lg:col-start-1 lg:row-start-1">
-        <CardContent className="space-y-3 pt-5">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-xs uppercase text-muted-foreground">
-                Trip to market
-              </p>
-              <p className="text-lg font-bold">
-                {formatDayDate(trip.trip_date)}
-              </p>
+    <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-start">
+      {/* Sidebar on tablet: status and history stacked, sticky beside the
+          list. On phones the wrapper dissolves (display: contents) so the
+          history card can sit below the list via `order`. */}
+      <div className="contents lg:sticky lg:top-20 lg:col-start-1 lg:row-start-1 lg:flex lg:max-h-[calc(100dvh-6rem)] lg:flex-col lg:gap-4 lg:overflow-y-auto">
+        <Card>
+          <CardContent className="space-y-3 pt-5">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs uppercase text-muted-foreground">
+                  Trip to market
+                </p>
+                <p className="text-lg font-bold">
+                  {formatDayDate(trip.trip_date)}
+                </p>
+              </div>
+              <StatusPill status={trip.status} />
             </div>
-            <StatusPill status={trip.status} />
-          </div>
 
-          {/* Progress */}
-          <div className="flex gap-1" aria-hidden>
-            {TRIP_STEPS.map((step, i) => (
-              <span
-                key={step}
-                className={cn(
-                  "h-1.5 flex-1 rounded-full",
-                  i <= stepIndex ? "bg-primary" : "bg-muted",
-                )}
-              />
-            ))}
-          </div>
-          <p className="text-xs text-muted-foreground">
-            {guidance(person.role, trip.status)}
-          </p>
-
-          {trip.rejection_note && trip.status === "reviewing" && (
-            <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3">
-              <p className="text-xs font-medium text-destructive">
-                Sent back by the admin
-              </p>
-              <p className="mt-1 text-sm">{trip.rejection_note}</p>
-            </div>
-          )}
-
-          {shortLines.length > 0 && (
-            <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3">
-              <p className="text-xs font-medium text-amber-700 dark:text-amber-400">
-                Short deliveries
-              </p>
-              <p className="mt-1 text-sm">
-                {shortLines
-                  .map((i) => `${i.name}: ${i.received_qty} of ${i.purchased_qty}`)
-                  .join(", ")}
-              </p>
-            </div>
-          )}
-
-          {/* Actions */}
-          {(primary || secondary.length > 0) && (
-            <div className="flex flex-wrap items-center gap-2 pt-1">
-              {primary && (
-                <Button
-                  disabled={busy}
-                  onClick={() => void runAction(primary)}
-                  className="flex-1"
-                >
-                  {TRANSITIONS[primary].label}
-                </Button>
-              )}
-              {secondary.map((action) => (
-                <Button
-                  key={action}
-                  variant="outline"
-                  disabled={busy}
-                  onClick={() => setSendBackOpen(true)}
-                >
-                  {TRANSITIONS[action].label}
-                </Button>
+            {/* Progress */}
+            <div className="flex gap-1" aria-hidden>
+              {TRIP_STEPS.map((step, i) => (
+                <span
+                  key={step}
+                  className={cn(
+                    "h-1.5 flex-1 rounded-full",
+                    i <= stepIndex ? "bg-primary" : "bg-muted",
+                  )}
+                />
               ))}
             </div>
-          )}
-        </CardContent>
-      </Card>
+            <p className="text-xs text-muted-foreground">
+              {guidance(person.role, trip.status)}
+            </p>
+
+            {trip.rejection_note && trip.status === "reviewing" && (
+              <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3">
+                <p className="text-xs font-medium text-destructive">
+                  Sent back by the admin
+                </p>
+                <p className="mt-1 text-sm">{trip.rejection_note}</p>
+              </div>
+            )}
+
+            {shortLines.length > 0 && (
+              <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3">
+                <p className="text-xs font-medium text-amber-700 dark:text-amber-400">
+                  Short deliveries
+                </p>
+                <p className="mt-1 text-sm">
+                  {shortLines
+                    .map((i) => `${i.name}: ${i.received_qty} of ${i.purchased_qty}`)
+                    .join(", ")}
+                </p>
+              </div>
+            )}
+
+            {/* Actions */}
+            {(primary || secondary.length > 0) && (
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                {primary && (
+                  <Button
+                    disabled={busy}
+                    onClick={() => void runAction(primary)}
+                    className="flex-1"
+                  >
+                    {TRANSITIONS[primary].label}
+                  </Button>
+                )}
+                {secondary.map((action) => (
+                  <Button
+                    key={action}
+                    variant="outline"
+                    disabled={busy}
+                    onClick={() => setSendBackOpen(true)}
+                  >
+                    {TRANSITIONS[action].label}
+                  </Button>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Who did what */}
+        {(trip.events?.length ?? 0) > 0 && (
+          <Card className="order-last lg:order-none">
+            <CardContent className="pt-5">
+              <details>
+                <summary className="flex cursor-pointer items-center gap-2 text-sm font-semibold">
+                  <Truck className="h-4 w-4" />
+                  History
+                </summary>
+                <ol className="mt-3 space-y-2">
+                  {trip.events!.map((event) => (
+                    <li key={event.id} className="flex gap-3 text-xs">
+                      {/* Local time: legitimately differs from the server's UTC render. */}
+                      <span
+                        suppressHydrationWarning
+                        className="w-24 shrink-0 text-muted-foreground"
+                      >
+                        {formatTimestampIn(settings.timezone, event.created_at)}
+                      </span>
+                      <span>
+                        <span className="font-medium">
+                          {event.person_name ?? "System"}
+                        </span>{" "}
+                        <span className="text-muted-foreground">
+                          {event.action.replace(/_/g, " ")}
+                          {event.note ? ` — ${event.note}` : ""}
+                        </span>
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              </details>
+            </CardContent>
+          </Card>
+        )}
+      </div>
 
       {/* The list */}
-      <Card className="lg:col-start-2 lg:row-start-1 lg:row-span-2">
+      <Card className="lg:col-start-2 lg:row-start-1">
         <CardContent className="space-y-3 pt-5">
           <div className="flex items-center justify-between">
             <div>
@@ -271,42 +311,6 @@ export function TripScreen({
           )}
         </CardContent>
       </Card>
-
-      {/* Who did what */}
-      {(trip.events?.length ?? 0) > 0 && (
-        <Card className="lg:col-start-1 lg:row-start-2">
-          <CardContent className="pt-5">
-            <details>
-              <summary className="flex cursor-pointer items-center gap-2 text-sm font-semibold">
-                <Truck className="h-4 w-4" />
-                History
-              </summary>
-              <ol className="mt-3 space-y-2">
-                {trip.events!.map((event) => (
-                  <li key={event.id} className="flex gap-3 text-xs">
-                    {/* Local time: legitimately differs from the server's UTC render. */}
-                    <span
-                      suppressHydrationWarning
-                      className="w-24 shrink-0 text-muted-foreground"
-                    >
-                      {formatTimestampIn(settings.timezone, event.created_at)}
-                    </span>
-                    <span>
-                      <span className="font-medium">
-                        {event.person_name ?? "System"}
-                      </span>{" "}
-                      <span className="text-muted-foreground">
-                        {event.action.replace(/_/g, " ")}
-                        {event.note ? ` — ${event.note}` : ""}
-                      </span>
-                    </span>
-                  </li>
-                ))}
-              </ol>
-            </details>
-          </CardContent>
-        </Card>
-      )}
 
       <ReportItemDialog
         tripId={trip.id}

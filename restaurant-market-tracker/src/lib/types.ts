@@ -12,6 +12,8 @@ export interface InventoryItem {
   kitchen_tracked: 0 | 1;
   /** Which shop/route this is bought from (COSTCO, ALDI, VEGE...). */
   store: string | null;
+  /** 1 once "deleted": hidden everywhere, but purchase history is kept. */
+  archived?: 0 | 1;
   created_at: string;
   updated_at: string;
 }

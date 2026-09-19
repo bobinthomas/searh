@@ -66,7 +66,7 @@ export async function POST(
 
   if (inventory_item_id) {
     const item = await getInventoryItem(db, inventory_item_id);
-    if (!item) {
+    if (!item || item.archived) {
       return NextResponse.json({ error: "Item not found" }, { status: 404 });
     }
     source = isStoreAction ? "store_added" : "kitchen_ran_out";
@@ -77,6 +77,24 @@ export async function POST(
 
     // Already on the list? Raise the requested quantity instead of duplicating.
     const existing = await findTripItem(db, tripId, inventory_item_id);
+    if (existing?.status === "dropped") {
+      // A fresh request overrides an earlier drop: put the line back with
+      // this quantity so the store sees it again, credited to the requester.
+      await updateTripItem(db, existing.id, {
+        status: "pending",
+        requested_qty: qty,
+        approved_qty: null,
+        requested_by: person.id,
+      });
+      await logTripEvent(
+        db,
+        tripId,
+        person.id,
+        "item_reinstated",
+        `${resolvedName} × ${qty} ${resolvedUnit}`,
+      );
+      return NextResponse.json({ id: existing.id, merged: true });
+    }
     if (existing) {
       await updateTripItem(db, existing.id, {
         requested_qty: Math.max(existing.requested_qty, qty),

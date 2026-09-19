@@ -29,15 +29,22 @@ export function TripItemRow({
   onChanged: () => void;
 }) {
   const [busy, setBusy] = useState(false);
-  const [purchaseQty, setPurchaseQty] = useState(
-    String(item.purchased_qty ?? item.approved_qty ?? item.requested_qty ?? 1),
-  );
-  const [price, setPrice] = useState(
-    item.unit_price != null ? String(item.unit_price) : "",
-  );
-  const [receivedQty, setReceivedQty] = useState(
-    String(item.received_qty ?? item.purchased_qty ?? ""),
-  );
+  // Drafts hold what is being typed; null shows the saved value. Deriving the
+  // shown value from `item` on every render keeps prefills current after a
+  // refresh (the row stays mounted, so useState initialisers would go stale).
+  const [needDraft, setNeedDraft] = useState<string | null>(null);
+  const [buyDraft, setBuyDraft] = useState<string | null>(null);
+  const [purchaseDraft, setPurchaseDraft] = useState<string | null>(null);
+  const [priceDraft, setPriceDraft] = useState<string | null>(null);
+  const [receivedDraft, setReceivedDraft] = useState<string | null>(null);
+
+  const purchaseQty =
+    purchaseDraft ??
+    String(item.purchased_qty ?? item.approved_qty ?? item.requested_qty ?? 1);
+  const price =
+    priceDraft ?? (item.unit_price != null ? String(item.unit_price) : "");
+  const receivedQty =
+    receivedDraft ?? String(item.received_qty ?? item.purchased_qty ?? "");
 
   const money = useMoney();
 
@@ -64,16 +71,44 @@ export function TripItemRow({
 
   const approvedQty = item.approved_qty ?? item.requested_qty;
 
-  const patch = async (body: Record<string, unknown>, message?: string) => {
+  const patch = async (
+    body: Record<string, unknown>,
+    message?: string,
+  ): Promise<boolean> => {
     setBusy(true);
     const res = await patchJson(`/api/trips/${item.trip_id}/items/${item.id}`, body);
     setBusy(false);
     if (!res.ok) {
       toast.error(res.data.error || "Could not save");
-      return;
+      return false;
     }
     if (message) toast.success(message);
     onChanged();
+    return true;
+  };
+
+  /** Saves a typed Need/Buy quantity when the field is left, not per
+   * keystroke: clearing the box to retype must not save 0. */
+  const commitQty = (
+    field: "requested_qty" | "approved_qty",
+    draft: string | null,
+    saved: number,
+    clear: () => void,
+  ) => {
+    if (draft === null) return;
+    clear();
+    const next = Number(draft);
+    if (draft.trim() === "" || next === saved) return;
+    if (!Number.isFinite(next) || next <= 0) {
+      toast.error("Quantity must be more than 0");
+      return;
+    }
+    void patch({ [field]: next });
+  };
+
+  const qtyKeys = (clear: () => void) => (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") e.currentTarget.blur();
+    if (e.key === "Escape") clear();
   };
 
   const remove = async () => {
@@ -89,11 +124,13 @@ export function TripItemRow({
   };
 
   const stepApproved = (delta: number) => {
+    setBuyDraft(null);
     const next = Math.max(0.5, Math.round((approvedQty + delta) * 10) / 10);
     void patch({ approved_qty: next });
   };
 
   const stepRequested = (delta: number) => {
+    setNeedDraft(null);
     const next = Math.max(0.5, Math.round(((item.requested_qty ?? 1) + delta) * 10) / 10);
     void patch({ requested_qty: next });
   };
@@ -212,11 +249,15 @@ export function TripItemRow({
                         inputMode="decimal"
               min="0.5"
               step="0.5"
-              value={item.requested_qty ?? 1}
+              value={needDraft ?? String(item.requested_qty ?? 1)}
               disabled={busy}
-              onChange={(e) =>
-                void patch({ requested_qty: Number(e.target.value) })
+              onChange={(e) => setNeedDraft(e.target.value)}
+              onBlur={() =>
+                commitQty("requested_qty", needDraft, item.requested_qty ?? 1, () =>
+                  setNeedDraft(null),
+                )
               }
+              onKeyDown={qtyKeys(() => setNeedDraft(null))}
               className="h-9 w-16 text-center"
             />
             <Button
@@ -252,11 +293,15 @@ export function TripItemRow({
                         inputMode="decimal"
               min="0.5"
               step="0.5"
-              value={approvedQty}
+              value={buyDraft ?? String(approvedQty)}
               disabled={busy}
-              onChange={(e) =>
-                void patch({ approved_qty: Number(e.target.value) })
+              onChange={(e) => setBuyDraft(e.target.value)}
+              onBlur={() =>
+                commitQty("approved_qty", buyDraft, approvedQty, () =>
+                  setBuyDraft(null),
+                )
               }
+              onKeyDown={qtyKeys(() => setBuyDraft(null))}
               className="h-9 w-16 text-center"
             />
             <Button
@@ -286,7 +331,7 @@ export function TripItemRow({
               min="0"
               step="0.1"
               value={purchaseQty}
-              onChange={(e) => setPurchaseQty(e.target.value)}
+              onChange={(e) => setPurchaseDraft(e.target.value)}
               className="h-9 w-20"
             />
           </div>
@@ -300,22 +345,26 @@ export function TripItemRow({
               min="0"
               step="0.01"
               value={price}
-              onChange={(e) => setPrice(e.target.value)}
+              onChange={(e) => setPriceDraft(e.target.value)}
               className="h-9 w-24"
             />
           </div>
           <Button
             size="sm"
             disabled={busy}
-            onClick={() =>
-              patch(
+            onClick={async () => {
+              const saved = await patch(
                 {
                   purchased_qty: Number(purchaseQty) || 0,
                   unit_price: Number(price) || 0,
                 },
                 "Saved",
-              )
-            }
+              );
+              if (saved) {
+                setPurchaseDraft(null);
+                setPriceDraft(null);
+              }
+            }}
           >
             Save
           </Button>
@@ -335,16 +384,20 @@ export function TripItemRow({
               min="0"
               step="0.1"
               value={receivedQty}
-              onChange={(e) => setReceivedQty(e.target.value)}
+              onChange={(e) => setReceivedDraft(e.target.value)}
               className="h-9 w-24"
             />
           </div>
           <Button
             size="sm"
             disabled={busy || receivedQty === ""}
-            onClick={() =>
-              patch({ received_qty: Number(receivedQty) }, "Delivery saved")
-            }
+            onClick={async () => {
+              if (
+                await patch({ received_qty: Number(receivedQty) }, "Delivery saved")
+              ) {
+                setReceivedDraft(null);
+              }
+            }}
           >
             Save
           </Button>

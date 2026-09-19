@@ -36,6 +36,48 @@ const ORDER_EDIT_STATUSES: TripStatus[] = [
   "pending_approval",
 ];
 
+/** Fields that decide what gets bought; locked once the list is approved. */
+const ORDER_FIELDS = [
+  "requested_qty",
+  "approved_qty",
+  "status",
+  "name",
+  "unit",
+  "notes",
+];
+
+/** Line states a person may set directly; purchased/received come from
+ * the trip's own transitions. */
+const SETTABLE_STATUSES = ["pending", "approved", "dropped"];
+
+/** Returns an error message for a malformed value, or null. */
+function validate(changes: Record<string, unknown>): string | null {
+  const num = (k: string) => changes[k] !== undefined;
+  const bad = (v: unknown) => typeof v !== "number" || !Number.isFinite(v);
+
+  for (const k of ["requested_qty", "approved_qty"]) {
+    if (num(k) && (bad(changes[k]) || (changes[k] as number) <= 0)) {
+      return "Quantity must be more than 0";
+    }
+  }
+  for (const k of ["purchased_qty", "received_qty", "unit_price"]) {
+    if (num(k) && (bad(changes[k]) || (changes[k] as number) < 0)) {
+      return k === "unit_price"
+        ? "Price cannot be negative"
+        : "Quantity cannot be negative";
+    }
+  }
+  for (const k of ["name", "unit"]) {
+    if (num(k) && (typeof changes[k] !== "string" || !(changes[k] as string).trim())) {
+      return `The ${k} cannot be empty`;
+    }
+  }
+  if (num("status") && !SETTABLE_STATUSES.includes(changes.status as string)) {
+    return "Unknown line status";
+  }
+  return null;
+}
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string; itemId: string }> },
@@ -74,6 +116,11 @@ export async function PATCH(
   const changes = body as Record<string, number | string | null>;
   const touches = (k: string) => changes[k] !== undefined;
 
+  const invalid = validate(changes);
+  if (invalid) {
+    return NextResponse.json({ error: invalid }, { status: 400 });
+  }
+
   if (touches("purchased_qty") || touches("unit_price")) {
     if (trip.status !== "purchasing") {
       return NextResponse.json(
@@ -88,7 +135,10 @@ export async function PATCH(
       { status: 409 },
     );
   }
-  if (touches("approved_qty") || touches("status")) {
+  // Anything that shapes the order is frozen once the list is approved:
+  // otherwise a changed requested_qty would be bought without anyone
+  // approving it.
+  if (ORDER_FIELDS.some(touches)) {
     if (!ORDER_EDIT_STATUSES.includes(trip.status)) {
       return NextResponse.json(
         { error: "The list is locked at this stage" },
@@ -99,6 +149,13 @@ export async function PATCH(
     if (trip.status === "pending_approval" && person.role !== "admin") {
       return NextResponse.json(
         { error: "This list is with the admin for approval" },
+        { status: 409 },
+      );
+    }
+    // The kitchen right-sizes its needs only while the list is collecting.
+    if (person.role === "kitchen" && trip.status !== "collecting") {
+      return NextResponse.json(
+        { error: "The store manager is checking the list now" },
         { status: 409 },
       );
     }
@@ -166,6 +223,12 @@ export async function DELETE(
   if (!ORDER_EDIT_STATUSES.includes(trip.status)) {
     return NextResponse.json(
       { error: "The list is locked at this stage" },
+      { status: 409 },
+    );
+  }
+  if (trip.status === "pending_approval" && person.role !== "admin") {
+    return NextResponse.json(
+      { error: "This list is with the admin for approval" },
       { status: 409 },
     );
   }

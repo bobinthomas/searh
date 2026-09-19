@@ -4,10 +4,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { startSession } from "@/lib/auth";
 import { getDb } from "@/lib/d1-context";
 import {
+  claimLoginAttempt,
   clearLoginAttempts,
   getPerson,
-  loginLockedUntil,
-  recordFailedLogin,
   verifyPin,
 } from "@/lib/people";
 
@@ -29,33 +28,32 @@ export async function POST(request: NextRequest) {
 
   try {
     const db = await getDb();
+    const wrongPin = () =>
+      NextResponse.json({ error: "That PIN is not right" }, { status: 401 });
 
-    const lockedUntil = await loginLockedUntil(db, person_id);
-    if (lockedUntil) {
+    const person = await getPerson(db, person_id);
+    // Same message for unknown person and wrong PIN, so the picker can't be
+    // used to probe who has an account.
+    if (!person || person.active !== 1) return wrongPin();
+
+    // Count the attempt before checking the PIN, so concurrent guesses
+    // cannot all slip past the lockout.
+    const { allowed } = await claimLoginAttempt(db, person.id);
+    if (!allowed) {
       return NextResponse.json(
         { error: "Too many wrong PINs. Try again in a few minutes." },
         { status: 429 },
       );
     }
 
-    const person = await getPerson(db, person_id);
-    // Same message for unknown person and wrong PIN, so the picker can't be
-    // used to probe who has an account.
-    const ok = person
-      ? person.active === 1 && (await verifyPin(pin, person.pin_hash))
-      : false;
+    if (!(await verifyPin(pin, person.pin_hash))) return wrongPin();
 
-    if (!ok) {
-      await recordFailedLogin(db, person_id);
-      return NextResponse.json({ error: "That PIN is not right" }, { status: 401 });
-    }
-
-    await clearLoginAttempts(db, person_id);
-    await startSession(person!.id);
+    await clearLoginAttempts(db, person.id);
+    await startSession(person.id);
 
     return NextResponse.json({
       success: true,
-      person: { id: person!.id, name: person!.name, role: person!.role },
+      person: { id: person.id, name: person.name, role: person.role },
     });
   } catch {
     return NextResponse.json({ error: "Database not available" }, { status: 503 });

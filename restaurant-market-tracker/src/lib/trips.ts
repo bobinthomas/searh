@@ -1,6 +1,15 @@
 // Market trips: the list that moves from collecting → received.
 
-import { d1All, d1First, d1Run, type D1Client } from "./db";
+import {
+  changes,
+  d1All,
+  d1Batch,
+  d1First,
+  d1Run,
+  d1Stmt,
+  type D1Client,
+  type D1PreparedStatement,
+} from "./db";
 import { getSettings } from "./settings";
 import {
   TRANSITIONS,
@@ -26,11 +35,29 @@ function newId(): string {
   return crypto.randomUUID();
 }
 
-/** Local calendar date as YYYY-MM-DD (avoids UTC day-shift). */
-function isoDate(d: Date): string {
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${d.getFullYear()}-${m}-${day}`;
+/**
+ * Today's calendar date in the company timezone, as a UTC-midnight Date so
+ * day arithmetic and getUTCDay() never shift it. The Worker's clock is UTC,
+ * which in Sydney is still "yesterday" until 10–11am.
+ */
+function todayIn(timeZone: string): Date {
+  try {
+    const [y, m, d] = new Intl.DateTimeFormat("en-CA", {
+      timeZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    })
+      .format(new Date())
+      .split("-")
+      .map(Number);
+    return new Date(Date.UTC(y, m - 1, d));
+  } catch {
+    const now = new Date();
+    return new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+    );
+  }
 }
 
 // ─── Reads ──────────────────────────────────────────────────
@@ -41,7 +68,7 @@ async function getTripByDate(
 ): Promise<MarketTrip | null> {
   return d1First<MarketTrip>(
     db,
-    "SELECT * FROM market_trips WHERE trip_date = ?",
+    "SELECT * FROM market_trips WHERE trip_date = ? ORDER BY created_at LIMIT 1",
     tripDate,
   );
 }
@@ -167,7 +194,7 @@ export async function materializeAutoItems(
             'auto_schedule', mi.default_quantity
      FROM market_items mi
      JOIN inventory_items ii ON ii.id = mi.inventory_item_id
-     WHERE mi.is_active = 1
+     WHERE mi.is_active = 1 AND ii.archived = 0
        AND mi.market_day_id IN (SELECT id FROM market_days WHERE day_of_week = ?)`,
     tripId,
     dayOfWeek,
@@ -181,7 +208,7 @@ export async function materializeAutoItems(
             'auto_low_stock', MAX(ii.min_quantity, 1), ii.store
      FROM inventory_items ii
      WHERE ii.min_quantity > 0 AND ii.current_quantity <= ii.min_quantity
-       AND ii.kitchen_tracked = 1`,
+       AND ii.kitchen_tracked = 1 AND ii.archived = 0`,
     tripId,
   );
 }
@@ -204,17 +231,18 @@ export async function getOrCreateCurrentTrip(
   if (days.length === 0) throw new NoMarketDayError();
 
   const marketDows = new Set(days.map((d) => d.day_of_week));
-  const today = new Date();
+  const { timezone } = await getSettings(db);
+  const today = todayIn(timezone);
 
   // Scan forward up to two weeks so a finished week rolls into the next one.
   for (let offset = 0; offset < 14; offset++) {
     const date = new Date(today);
-    date.setDate(today.getDate() + offset);
+    date.setUTCDate(today.getUTCDate() + offset);
 
-    const dow = date.getDay();
+    const dow = date.getUTCDay();
     if (!marketDows.has(dow)) continue;
 
-    const tripDate = isoDate(date);
+    const tripDate = date.toISOString().slice(0, 10);
     const existing = await getTripByDate(db, tripDate);
 
     if (existing) {
@@ -226,15 +254,22 @@ export async function getOrCreateCurrentTrip(
 
     const day = days.find((d) => d.day_of_week === dow);
     const id = newId();
-    await d1Run(
+    // trip_date is unique: if another device created this trip a moment ago,
+    // the insert is ignored and everyone shares that one list.
+    const inserted = await d1Run(
       db,
-      `INSERT INTO market_trips (id, market_day_id, trip_date, status, created_by)
+      `INSERT OR IGNORE INTO market_trips (id, market_day_id, trip_date, status, created_by)
        VALUES (?, ?, ?, 'collecting', ?)`,
       id,
       day?.id ?? null,
       tripDate,
       personId,
     );
+    if (changes(inserted) === 0) {
+      const theirs = await getTripByDate(db, tripDate);
+      if (theirs && theirs.status !== "received") return theirs;
+      continue;
+    }
     await materializeAutoItems(db, id, dow);
     await logTripEvent(db, id, personId, "trip_created", tripDate);
 
@@ -320,6 +355,7 @@ export async function updateTripItem(
     unit_price: number | null;
     status: string;
     notes: string;
+    requested_by: string | null;
   }>,
 ): Promise<void> {
   const sets: string[] = [];
@@ -363,34 +399,51 @@ export interface TransitionResult {
   status?: TripStatus;
 }
 
+/** A trip-log entry to write once the transition has committed. */
+interface PendingEvent {
+  action: string;
+  note: string;
+  personId: string | null;
+}
+
+/** Estimated cost of a list for the auto-approve ceiling: each line's
+ * approved (or requested) quantity × the item's most recent purchase price.
+ * `unpriced` counts lines with nothing to price them by (never bought, or not
+ * a stock item). Any such line makes the estimate incomplete, so the list
+ * must not auto-approve on it. */
+async function tripEstimate(
+  db: D1Client,
+  tripId: string,
+): Promise<{ total: number; unpriced: number }> {
+  const row = await d1First<{ total: number | null; unpriced: number | null }>(
+    db,
+    `SELECT COALESCE(SUM(qty * price), 0) AS total,
+            SUM(CASE WHEN price IS NULL THEN 1 ELSE 0 END) AS unpriced
+     FROM (
+       SELECT COALESCE(ti.approved_qty, ti.requested_qty) AS qty,
+              (SELECT ph.unit_price FROM purchase_history ph
+                WHERE ph.inventory_item_id = ti.inventory_item_id
+                  AND ph.unit_price > 0
+                ORDER BY ph.purchased_at DESC
+                LIMIT 1) AS price
+       FROM trip_items ti
+       WHERE ti.trip_id = ? AND ti.status != 'dropped'
+     )`,
+    tripId,
+  );
+  return { total: row?.total ?? 0, unpriced: row?.unpriced ?? 0 };
+}
+
 /**
  * The single entry point for moving a trip forward. Enforces the allowed
  * source status and the acting role, applies side effects, and logs the event.
+ *
+ * Everything runs as one D1 batch that ends with the status change, and every
+ * write is conditional on the trip still being in the status read here. Two
+ * people tapping the same button (or a retried request) therefore cannot both
+ * post purchases: the second batch finds the status already moved, changes
+ * nothing, and gets an error.
  */
-/** Estimated cost of a list for the auto-approve ceiling: each line's
- * approved (or requested) quantity × the item's most recent purchase price.
- * Lines never bought before count as 0, so a list of all-new items will not
- * auto-approve unless the ceiling is very high. */
-async function tripEstimateTotal(db: D1Client, tripId: string): Promise<number> {
-  const row = await d1First<{ total: number | null }>(
-    db,
-    `SELECT COALESCE(SUM(COALESCE(ti.approved_qty, ti.requested_qty) * lp.price), 0) AS total
-     FROM trip_items ti
-     LEFT JOIN (
-       SELECT inventory_item_id, unit_price AS price
-       FROM purchase_history ph
-       WHERE ph.unit_price > 0
-         AND ph.purchased_at = (
-           SELECT MAX(ph2.purchased_at) FROM purchase_history ph2
-           WHERE ph2.inventory_item_id = ph.inventory_item_id AND ph2.unit_price > 0
-         )
-     ) lp ON lp.inventory_item_id = ti.inventory_item_id
-     WHERE ti.trip_id = ? AND ti.status != 'dropped'`,
-    tripId,
-  );
-  return row?.total ?? 0;
-}
-
 export async function applyTransition(
   db: D1Client,
   tripId: string,
@@ -417,49 +470,64 @@ export async function applyTransition(
     return { ok: false, error: "Add a comment explaining what to change" };
   }
 
+  let to: TripStatus = rule.to;
+  let event: PendingEvent = { action, note: note.trim(), personId: person.id };
+
   // Approval settings: when the admin turns approval off (or sets an
   // auto-approve ceiling), submit_for_approval short-circuits to approved.
   // The admin's own submissions always skip the pending step — self-approval
   // adds no control, so it should not cost a click.
   if (action === "submit_for_approval") {
     const settings = await getSettings(db);
-    const estimate = await tripEstimateTotal(db, tripId);
-    const skipApproval =
-      person.role === "admin" ||
-      settings.require_approval === "0" ||
-      (Number(settings.auto_approve_under) > 0 &&
-        estimate < Number(settings.auto_approve_under));
-    if (skipApproval) {
-      const sets: string[] = ["status = ?", "updated_at = datetime('now')"];
-      const values: unknown[] = ["approved", person.id, new Date().toISOString()];
-      values.push(tripId);
-      await d1Run(
-        db,
-        `UPDATE market_trips SET ${sets.join(", ")}, approved_by = ?, approved_at = ? WHERE id = ?`,
-        ...values,
-      );
-      await logTripEvent(
-        db,
-        tripId,
-        person.id,
-        "auto_approved",
-        `List of ${estimate} auto-approved (approval not required)`,
-      );
-      return { ok: true, status: "approved" };
+    const estimate = await tripEstimate(db, tripId);
+    const ceiling = Number(settings.auto_approve_under);
+    const reason =
+      person.role === "admin"
+        ? "sent by the admin"
+        : settings.require_approval === "0"
+          ? "approval not required"
+          : ceiling > 0 && estimate.unpriced === 0 && estimate.total < ceiling
+            ? `estimate ${estimate.total.toFixed(2)} is under ${ceiling}`
+            : null;
+    if (reason) {
+      to = "approved";
+      event = { action: "auto_approved", note: `Auto-approved: ${reason}`, personId: person.id };
     }
   }
 
+  const statements: D1PreparedStatement[] = [];
+  const sideEvents: PendingEvent[] = [];
+
+  if (to === "approved") {
+    // Freeze the quantity to buy. Without this, a line the store never
+    // stepped still reads its requested_qty, which stays editable.
+    statements.push(
+      d1Stmt(
+        db,
+        `UPDATE trip_items
+         SET approved_qty = COALESCE(approved_qty, requested_qty),
+             updated_at = datetime('now')
+         WHERE trip_id = ? AND status != 'dropped'
+           AND EXISTS (SELECT 1 FROM market_trips WHERE id = ? AND status = ?)`,
+        tripId,
+        tripId,
+        trip.status,
+      ),
+    );
+  }
   if (action === "complete_purchase") {
-    await postPurchases(db, tripId, person.id);
+    statements.push(...purchaseStatements(db, trip));
+    sideEvents.push({ action: "purchases_recorded", note: "", personId: person.id });
   }
   if (action === "confirm_receipt") {
-    await postReceipts(db, tripId);
+    const receipts = await receiptStatements(db, trip);
+    statements.push(...receipts.statements);
+    sideEvents.push(...receipts.events);
   }
 
   const sets: string[] = ["status = ?", "updated_at = datetime('now')"];
-  const values: unknown[] = [rule.to];
-
-  if (action === "approve") {
+  const values: unknown[] = [to];
+  if (to === "approved") {
     sets.push("approved_by = ?", "approved_at = ?", "rejection_note = ''");
     values.push(person.id, new Date().toISOString());
   }
@@ -467,136 +535,175 @@ export async function applyTransition(
     sets.push("rejection_note = ?");
     values.push(note.trim());
   }
-
-  values.push(tripId);
-  await d1Run(
-    db,
-    `UPDATE market_trips SET ${sets.join(", ")} WHERE id = ?`,
-    ...values,
+  statements.push(
+    d1Stmt(
+      db,
+      `UPDATE market_trips SET ${sets.join(", ")} WHERE id = ? AND status = ?`,
+      ...values,
+      tripId,
+      trip.status,
+    ),
   );
 
-  await logTripEvent(db, tripId, person.id, action, note.trim());
-  return { ok: true, status: rule.to };
+  const results = await d1Batch(db, statements);
+  if (changes(results[results.length - 1]) !== 1) {
+    return {
+      ok: false,
+      error: "Someone else just updated this list. Refresh to see the latest.",
+    };
+  }
+
+  for (const e of [...sideEvents, event]) {
+    await logTripEvent(db, tripId, e.personId, e.action, e.note);
+  }
+  return { ok: true, status: to };
 }
 
 /**
- * Writes every purchased line into the ledger and bumps stock. Runs once per
- * line — `posted` guards against double counting if the list is re-submitted.
+ * Statements that write every bought line into the ledger and bump stock.
+ *
+ * Set-based, so a trip of any size is six statements: D1 counts every
+ * statement in a batch toward its per-request query limit (50 on the Free
+ * plan), which a statement-per-line approach blows through on an ordinary
+ * list. Each is guarded on the trip still purchasing, so the batch changes
+ * nothing if another request already recorded the purchase. The quantity
+ * posted is saved to purchased_qty: the delivery check compares against it.
  */
-async function postPurchases(
+function purchaseStatements(
   db: D1Client,
-  tripId: string,
-  personId: string,
-): Promise<void> {
-  const trip = await getTripRow(db, tripId);
-  const items = await getTripItems(db, tripId);
+  trip: MarketTrip,
+): D1PreparedStatement[] {
+  const open = "EXISTS (SELECT 1 FROM market_trips WHERE id = ? AND status = 'purchasing')";
+  const unposted = "trip_id = ? AND status != 'dropped' AND posted = 0";
+  const bought = `${unposted} AND purchased_qty > 0`;
 
-  for (const item of items) {
-    if (item.posted === 1 || item.status === "dropped") continue;
-
-    const qty = item.purchased_qty ?? item.approved_qty ?? item.requested_qty;
-    if (!qty || qty <= 0) continue;
-
-    let inventoryId = item.inventory_item_id;
-
-    // An extra need that isn't in inventory yet becomes a tracked item.
-    if (!inventoryId) {
-      inventoryId = newId();
-      await d1Run(
-        db,
-        `INSERT INTO inventory_items
-           (id, name, category, unit, current_quantity, min_quantity)
-         VALUES (?, ?, 'Other', ?, 0, 0)`,
-        inventoryId,
-        item.name,
-        item.unit,
-      );
-      await d1Run(
-        db,
-        "UPDATE trip_items SET inventory_item_id = ? WHERE id = ?",
-        inventoryId,
-        item.id,
-      );
-    }
-
-    await d1Run(
+  return [
+    // Settle the quantity: what the store entered, else what was approved.
+    d1Stmt(
+      db,
+      `UPDATE trip_items
+       SET purchased_qty = COALESCE(purchased_qty, approved_qty, requested_qty)
+       WHERE ${unposted} AND ${open}`,
+      trip.id,
+      trip.id,
+    ),
+    // An extra need that isn't in inventory yet becomes a tracked item. It
+    // takes the line's id, which links the two without a lookup.
+    d1Stmt(
+      db,
+      `INSERT INTO inventory_items (id, name, category, unit, current_quantity, min_quantity)
+       SELECT id, name, 'Other', unit, 0, 0 FROM trip_items
+       WHERE ${bought} AND inventory_item_id IS NULL AND ${open}`,
+      trip.id,
+      trip.id,
+    ),
+    d1Stmt(
+      db,
+      `UPDATE trip_items SET inventory_item_id = id
+       WHERE ${bought} AND inventory_item_id IS NULL AND ${open}`,
+      trip.id,
+      trip.id,
+    ),
+    d1Stmt(
       db,
       `INSERT INTO purchase_history
-         (id, inventory_item_id, market_day_id, quantity, unit_price, notes, purchased_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      newId(),
-      inventoryId,
-      trip?.market_day_id ?? null,
-      qty,
-      item.unit_price ?? 0,
-      `Trip ${trip?.trip_date ?? ""}`.trim(),
+         (id, inventory_item_id, market_day_id, quantity, unit_price, notes,
+          purchased_at, trip_item_id)
+       SELECT lower(hex(randomblob(16))), inventory_item_id, ?, purchased_qty,
+              COALESCE(unit_price, 0), ?, ?, id
+       FROM trip_items
+       WHERE ${bought} AND ${open}`,
+      trip.market_day_id ?? null,
+      `Trip ${trip.trip_date}`,
       new Date().toISOString(),
-    );
-
-    await d1Run(
+      trip.id,
+      trip.id,
+    ),
+    d1Stmt(
       db,
       `UPDATE inventory_items
-       SET current_quantity = current_quantity + ?, updated_at = datetime('now')
-       WHERE id = ?`,
-      qty,
-      inventoryId,
-    );
-
-    await d1Run(
+       SET current_quantity = current_quantity + (
+             SELECT SUM(ti.purchased_qty) FROM trip_items ti
+             WHERE ti.inventory_item_id = inventory_items.id
+               AND ti.trip_id = ? AND ti.status != 'dropped'
+               AND ti.posted = 0 AND ti.purchased_qty > 0),
+           updated_at = datetime('now')
+       WHERE id IN (
+               SELECT ti.inventory_item_id FROM trip_items ti
+               WHERE ti.trip_id = ? AND ti.status != 'dropped'
+                 AND ti.posted = 0 AND ti.purchased_qty > 0)
+         AND ${open}`,
+      trip.id,
+      trip.id,
+      trip.id,
+    ),
+    // Last: flipping `posted` is what the statements above select on.
+    d1Stmt(
       db,
       `UPDATE trip_items
-       SET status = 'purchased', posted = 1, inventory_item_id = ?,
-           updated_at = datetime('now')
-       WHERE id = ?`,
-      inventoryId,
-      item.id,
-    );
-  }
-
-  await logTripEvent(db, tripId, personId, "purchases_recorded");
+       SET status = 'purchased', posted = 1, updated_at = datetime('now')
+       WHERE ${bought} AND ${open}`,
+      trip.id,
+      trip.id,
+    ),
+  ];
 }
 
 /**
- * Applies what actually arrived. Any shortfall is taken back off stock and
- * recorded, so the books match the shelf.
+ * Statements that apply what actually arrived. Any shortfall is taken back
+ * off stock, so the books match the shelf; the shortfalls are returned as
+ * trip-log entries. Set-based for the same query-limit reason as above.
  */
-async function postReceipts(db: D1Client, tripId: string): Promise<void> {
-  const items = await getTripItems(db, tripId);
+async function receiptStatements(
+  db: D1Client,
+  trip: MarketTrip,
+): Promise<{ statements: D1PreparedStatement[]; events: PendingEvent[] }> {
+  const open = "EXISTS (SELECT 1 FROM market_trips WHERE id = ? AND status = 'purchased')";
+  const bought = "COALESCE(ti.purchased_qty, ti.approved_qty, ti.requested_qty, 0)";
+  const short = `MAX(${bought} - COALESCE(ti.received_qty, ${bought}), 0)`;
 
-  for (const item of items) {
-    if (item.status === "dropped" || item.status === "received") continue;
-    if (item.status !== "purchased") continue;
-
-    const bought = item.purchased_qty ?? 0;
-    const received = item.received_qty ?? bought;
-    const missing = bought - received;
-
-    if (missing > 0 && item.inventory_item_id) {
-      await d1Run(
-        db,
-        `UPDATE inventory_items
-         SET current_quantity = MAX(0, current_quantity - ?),
-             updated_at = datetime('now')
-         WHERE id = ?`,
-        missing,
-        item.inventory_item_id,
-      );
-      await logTripEvent(
-        db,
-        tripId,
-        null,
-        "short_delivery",
-        `${item.name}: bought ${bought} ${item.unit}, received ${received} ${item.unit}`,
-      );
-    }
-
-    await d1Run(
+  const statements = [
+    d1Stmt(
+      db,
+      `UPDATE inventory_items
+       SET current_quantity = MAX(0, current_quantity - (
+             SELECT SUM(${short}) FROM trip_items ti
+             WHERE ti.inventory_item_id = inventory_items.id
+               AND ti.trip_id = ? AND ti.status = 'purchased')),
+           updated_at = datetime('now')
+       WHERE id IN (
+               SELECT ti.inventory_item_id FROM trip_items ti
+               WHERE ti.trip_id = ? AND ti.status = 'purchased' AND ${short} > 0)
+         AND ${open}`,
+      trip.id,
+      trip.id,
+      trip.id,
+    ),
+    d1Stmt(
       db,
       `UPDATE trip_items
-       SET status = 'received', received_qty = ?, updated_at = datetime('now')
-       WHERE id = ?`,
-      received,
-      item.id,
-    );
+       SET status = 'received',
+           received_qty = COALESCE(received_qty, purchased_qty, approved_qty, requested_qty, 0),
+           updated_at = datetime('now')
+       WHERE trip_id = ? AND status = 'purchased' AND ${open}`,
+      trip.id,
+      trip.id,
+    ),
+  ];
+
+  const events: PendingEvent[] = [];
+  for (const item of await getTripItems(db, trip.id)) {
+    if (item.status !== "purchased") continue;
+    const got = item.purchased_qty ?? item.approved_qty ?? item.requested_qty ?? 0;
+    const received = item.received_qty ?? got;
+    if (got - received > 0 && item.inventory_item_id) {
+      events.push({
+        action: "short_delivery",
+        note: `${item.name}: bought ${got} ${item.unit}, received ${received} ${item.unit}`,
+        personId: null,
+      });
+    }
   }
+
+  return { statements, events };
 }

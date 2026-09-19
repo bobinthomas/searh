@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { CategoryIcon } from "@/components/ui/category-icon";
 import { AddItemDialog } from "./AddItemDialog";
@@ -73,7 +74,8 @@ export function InventoryTable({ canEdit }: { canEdit: boolean }) {
 
   const removeItem = async (id: string) => {
     const ok = await confirm("Delete this item?", {
-      description: "Past purchases keep their history.",
+      description:
+        "It comes off the stock list and market days. Past purchases keep their history.",
       confirmLabel: "Delete",
       destructive: true,
     });
@@ -111,6 +113,11 @@ export function InventoryTable({ canEdit }: { canEdit: boolean }) {
     toast.success("Saved");
     fetchItems();
     router.refresh();
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditForm({});
   };
 
   const searched = items.filter(
@@ -266,7 +273,10 @@ export function InventoryTable({ canEdit }: { canEdit: boolean }) {
                       size="icon"
                       variant="ghost"
                       className="h-9 w-9"
-                      onClick={() => startEdit(item)}
+                      aria-label={`Edit ${item.name}`}
+                      onClick={() =>
+                        editingId === item.id ? cancelEdit() : startEdit(item)
+                      }
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
@@ -281,6 +291,16 @@ export function InventoryTable({ canEdit }: { canEdit: boolean }) {
                   </div>
                 )}
               </div>
+
+              {canEdit && editingId === item.id && (
+                <MobileEditForm
+                  id={item.id}
+                  form={editForm}
+                  onChange={setEditForm}
+                  onSave={() => saveEdit(item.id)}
+                  onCancel={cancelEdit}
+                />
+              )}
             </div>
                 ))}
               </div>
@@ -465,10 +485,7 @@ export function InventoryTable({ canEdit }: { canEdit: boolean }) {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => {
-                                setEditingId(null);
-                                setEditForm({});
-                              }}
+                              onClick={cancelEdit}
                             >
                               Cancel
                             </Button>
@@ -513,6 +530,106 @@ export function InventoryTable({ canEdit }: { canEdit: boolean }) {
         }}
       />
       {confirmDialog}
+    </div>
+  );
+}
+
+/**
+ * Editing on phones. The desktop table edits inline, but it is hidden below
+ * the sm breakpoint, so the card list needs its own form.
+ */
+function MobileEditForm({
+  id,
+  form,
+  onChange,
+  onSave,
+  onCancel,
+}: {
+  id: string;
+  form: Partial<InventoryItem>;
+  onChange: (next: Partial<InventoryItem>) => void;
+  onSave: () => void;
+  onCancel: () => void;
+}) {
+  const set = (patch: Partial<InventoryItem>) => onChange({ ...form, ...patch });
+  const fid = (name: string) => `edit-${id}-${name}`;
+
+  return (
+    <div className="mt-3 space-y-3 border-t pt-3">
+      <div className="space-y-1.5">
+        <Label htmlFor={fid("name")}>Name</Label>
+        <Input
+          id={fid("name")}
+          value={form.name ?? ""}
+          onChange={(e) => set({ name: e.target.value })}
+        />
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <div className="space-y-1.5">
+          <Label htmlFor={fid("category")}>Category</Label>
+          <Input
+            id={fid("category")}
+            value={form.category ?? ""}
+            onChange={(e) => set({ category: e.target.value })}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor={fid("unit")}>Unit</Label>
+          <Input
+            id={fid("unit")}
+            value={form.unit ?? ""}
+            onChange={(e) => set({ unit: e.target.value })}
+          />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <div className="space-y-1.5">
+          <Label htmlFor={fid("current")}>In stock</Label>
+          <Input
+            id={fid("current")}
+            type="number"
+            inputMode="decimal"
+            value={form.current_quantity ?? 0}
+            onChange={(e) => set({ current_quantity: Number(e.target.value) })}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor={fid("min")}>Reorder at</Label>
+          <Input
+            id={fid("min")}
+            type="number"
+            inputMode="decimal"
+            value={form.min_quantity ?? 0}
+            onChange={(e) => set({ min_quantity: Number(e.target.value) })}
+          />
+        </div>
+      </div>
+      <div className="space-y-1.5">
+        <Label htmlFor={fid("store")}>Store</Label>
+        <Input
+          id={fid("store")}
+          placeholder="e.g. COSTCO, ALDI, VEGE"
+          value={form.store ?? ""}
+          onChange={(e) => set({ store: e.target.value })}
+        />
+      </div>
+      <label className="flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          className="h-4 w-4"
+          checked={form.kitchen_tracked !== 0}
+          onChange={(e) => set({ kitchen_tracked: e.target.checked ? 1 : 0 })}
+        />
+        The kitchen tracks this
+      </label>
+      <div className="flex gap-2">
+        <Button className="flex-1" onClick={onSave}>
+          Save
+        </Button>
+        <Button variant="outline" onClick={onCancel}>
+          Cancel
+        </Button>
+      </div>
     </div>
   );
 }
