@@ -44,3 +44,7 @@ next-env.d.ts
 
 .vercel
 .env*
+
+# Restaurant market tracker lives in its own repo:
+# github.com/bobinthomas/restaurant-market-tracker
+/restaurant-market-tracker/
