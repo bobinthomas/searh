@@ -520,9 +520,7 @@ export async function applyTransition(
     sideEvents.push({ action: "purchases_recorded", note: "", personId: person.id });
   }
   if (action === "confirm_receipt") {
-    const receipts = await receiptStatements(db, trip);
-    statements.push(...receipts.statements);
-    sideEvents.push(...receipts.events);
+    statements.push(...receiptStatements(db, trip));
   }
 
   const sets: string[] = ["status = ?", "updated_at = datetime('now')"];
@@ -650,19 +648,37 @@ function purchaseStatements(
 }
 
 /**
- * Statements that apply what actually arrived. Any shortfall is taken back
- * off stock, so the books match the shelf; the shortfalls are returned as
- * trip-log entries. Set-based for the same query-limit reason as above.
+ * Statements that apply what actually arrived: each shortfall is written to
+ * the trip log and taken back off stock, so the books match the shelf. Three
+ * statements whatever the size of the list or the number of short lines, for
+ * the same query-limit reason as above.
  */
-async function receiptStatements(
+function receiptStatements(
   db: D1Client,
   trip: MarketTrip,
-): Promise<{ statements: D1PreparedStatement[]; events: PendingEvent[] }> {
+): D1PreparedStatement[] {
   const open = "EXISTS (SELECT 1 FROM market_trips WHERE id = ? AND status = 'purchased')";
   const bought = "COALESCE(ti.purchased_qty, ti.approved_qty, ti.requested_qty, 0)";
-  const short = `MAX(${bought} - COALESCE(ti.received_qty, ${bought}), 0)`;
+  const received = `COALESCE(ti.received_qty, ${bought})`;
+  const short = `MAX(${bought} - ${received}, 0)`;
 
-  const statements = [
+  return [
+    // Log first: the last statement moves the lines out of 'purchased'.
+    d1Stmt(
+      db,
+      `INSERT INTO trip_events (id, trip_id, person_id, action, note, created_at)
+       SELECT lower(hex(randomblob(16))), ti.trip_id, NULL, 'short_delivery',
+              ti.name || ': bought ' || printf('%g', ${bought}) || ' ' || ti.unit ||
+              ', received ' || printf('%g', ${received}) || ' ' || ti.unit,
+              ?
+       FROM trip_items ti
+       WHERE ti.trip_id = ? AND ti.status = 'purchased'
+         AND ti.inventory_item_id IS NOT NULL AND ${short} > 0
+         AND ${open}`,
+      new Date().toISOString(),
+      trip.id,
+      trip.id,
+    ),
     d1Stmt(
       db,
       `UPDATE inventory_items
@@ -690,20 +706,4 @@ async function receiptStatements(
       trip.id,
     ),
   ];
-
-  const events: PendingEvent[] = [];
-  for (const item of await getTripItems(db, trip.id)) {
-    if (item.status !== "purchased") continue;
-    const got = item.purchased_qty ?? item.approved_qty ?? item.requested_qty ?? 0;
-    const received = item.received_qty ?? got;
-    if (got - received > 0 && item.inventory_item_id) {
-      events.push({
-        action: "short_delivery",
-        note: `${item.name}: bought ${got} ${item.unit}, received ${received} ${item.unit}`,
-        personId: null,
-      });
-    }
-  }
-
-  return { statements, events };
 }
